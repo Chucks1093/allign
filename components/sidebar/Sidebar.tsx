@@ -17,11 +17,11 @@ import SidebarChatItem from "./SidebarChatItem";
 const manrope = Manrope({ subsets: ["latin"], weight: ["700"] });
 
 const NAV_ITEMS = [
-  { icon: SquarePen, label: "New chat" },
-  { icon: CalendarClock, label: "Scheduled" },
-  { icon: TrendingUp, label: "Stocks" },
-  { icon: Gift, label: "Gifts" },
-  { icon: Briefcase, label: "Portfolio" },
+  { icon: SquarePen, label: "New chat", href: "/" },
+  { icon: TrendingUp, label: "Stocks", href: "/explore" },
+  { icon: Briefcase, label: "Portfolio", href: "/portfolio" },
+  { icon: Gift, label: "Gifts", href: "/gift" },
+  { icon: CalendarClock, label: "Scheduled", href: "/scheduled" },
 ];
 
 const RECENT_CHATS = [
@@ -52,7 +52,7 @@ export default function Sidebar() {
       {/* Nav items */}
       <nav className="px-2 mt-1 space-y-0.5">
         {NAV_ITEMS.map((item) => (
-          <SidebarNavItem key={item.label} icon={item.icon} label={item.label} />
+          <SidebarNavItem key={item.label} icon={item.icon} label={item.label} href={item.href} />
         ))}
       </nav>
 

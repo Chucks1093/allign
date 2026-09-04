@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import ChatHeader from "./ChatHeader";
 import EmptyChat from "./EmptyChat";
 import ChatMessages from "./ChatMessages";
 
@@ -26,7 +25,6 @@ export default function ChatArea() {
 
   return (
     <div className="flex flex-col flex-1 h-full bg-[#0d0d0d] overflow-hidden">
-      <ChatHeader />
       {hasMessages ? (
         <ChatMessages
           messages={messages}
