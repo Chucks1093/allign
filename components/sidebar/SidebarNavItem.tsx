@@ -15,7 +15,7 @@ export default function SidebarNavItem({ icon: Icon, label, active, onClick }: S
     <button
       onClick={onClick}
       className={cn(
-        "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors text-left",
+        "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors text-left cursor-pointer",
         active
           ? "bg-white/15 text-white"
           : "text-white hover:bg-white/10"

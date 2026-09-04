@@ -3,28 +3,25 @@
 import {
   SquarePen,
   Search,
-  Image,
-  Library,
   CalendarClock,
-  Puzzle,
-  FolderOpen,
-  Code2,
-  MoreHorizontal,
+  TrendingUp,
+  Gift,
+  Briefcase,
 } from "lucide-react";
+import { Manrope } from "next/font/google";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import SidebarNavItem from "./SidebarNavItem";
 import SidebarChatItem from "./SidebarChatItem";
 
+const manrope = Manrope({ subsets: ["latin"], weight: ["700"] });
+
 const NAV_ITEMS = [
   { icon: SquarePen, label: "New chat" },
-  { icon: Image, label: "Images" },
-  { icon: Library, label: "Library" },
   { icon: CalendarClock, label: "Scheduled" },
-  { icon: Puzzle, label: "Plugins" },
-  { icon: FolderOpen, label: "Projects" },
-  { icon: Code2, label: "Codex" },
-  { icon: MoreHorizontal, label: "More" },
+  { icon: TrendingUp, label: "Stocks" },
+  { icon: Gift, label: "Gifts" },
+  { icon: Briefcase, label: "Portfolio" },
 ];
 
 const RECENT_CHATS = [
@@ -39,12 +36,14 @@ export default function Sidebar() {
     <aside className="flex flex-col w-[260px] shrink-0 h-full bg-[#0d0d0d] border-r border-white/10">
       {/* Top bar */}
       <div className="flex items-center justify-between px-3 pt-4 pb-2">
-        <span className="text-white font-semibold text-base tracking-tight px-1">allign</span>
+        <span className={`${manrope.className} text-white font-bold text-base tracking-tight px-1`}>
+          ALLIGN
+        </span>
         <div className="flex items-center gap-1">
-          <button className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+          <button className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer">
             <Search size={16} />
           </button>
-          <button className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors">
+          <button className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer">
             <SquarePen size={16} />
           </button>
         </div>
@@ -83,7 +82,7 @@ export default function Sidebar() {
             <p className="text-xs text-white/40">Free</p>
           </div>
         </div>
-        <button className="text-xs text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full transition-colors shrink-0 font-medium">
+        <button className="text-xs text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full transition-colors shrink-0 font-medium cursor-pointer">
           Upgrade
         </button>
       </div>
