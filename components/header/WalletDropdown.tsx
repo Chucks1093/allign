@@ -1,6 +1,7 @@
 "use client";
 
 import makeBlockie from "ethereum-blockies-base64";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,17 +9,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, EyeOff, Settings, LogOut, MoreHorizontal, Copy } from "lucide-react";
-
-const MOCK_ADDRESS = "0x37f4b3a9c2e1d056f78a9b3c4e2f1d056f78a9b3";
-const SHORT_ADDRESS = "0x37...d325";
-const ETH_BALANCE = "0 ETH";
+import { User, EyeOff, Settings, LogOut, MoreHorizontal, Copy, Wallet } from "lucide-react";
 
 function Blockie({ address, size = 32 }: { address: string; size?: number }) {
-  const src = makeBlockie(address);
   return (
     <img
-      src={src}
+      src={makeBlockie(address)}
       alt="wallet avatar"
       width={size}
       height={size}
@@ -28,17 +24,38 @@ function Blockie({ address, size = 32 }: { address: string; size?: number }) {
   );
 }
 
-
-function copyAddress() {
-  navigator.clipboard.writeText(MOCK_ADDRESS);
+function shortAddress(addr: string) {
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
 export default function WalletDropdown() {
+  const { ready, authenticated, login, logout } = usePrivy();
+  const { wallets } = useWallets();
+
+  const evmWallet = wallets.find((w) => w.walletClientType !== "solana");
+
+  if (!ready) return null;
+
+  if (!authenticated || !evmWallet) {
+    return (
+      <button
+        onClick={login}
+        className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full px-4 py-2 text-sm text-white/70 font-medium transition-colors cursor-pointer"
+      >
+        <Wallet size={15} className="text-white/50" />
+        Connect Wallet
+      </button>
+    );
+  }
+
+  const address = evmWallet.address;
+  const display = shortAddress(address);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full pl-2 pr-4 py-2 transition-colors outline-none cursor-pointer">
-        <Blockie address={MOCK_ADDRESS} size={26} />
-        <span className="text-sm text-white/60 font-medium">{SHORT_ADDRESS}</span>
+        <Blockie address={address} size={26} />
+        <span className="text-sm text-white/60 font-medium">{display}</span>
         <MoreHorizontal size={15} className="text-white/40 ml-0.5" />
       </DropdownMenuTrigger>
 
@@ -47,19 +64,16 @@ export default function WalletDropdown() {
         sideOffset={8}
         className="w-64 bg-[#1a1a1a] border border-white/10 text-white rounded-2xl p-2 shadow-xl"
       >
-        {/* Wallet info card */}
         <div className="bg-[#2a2a2a] rounded-xl px-3 py-3 mb-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Blockie address={MOCK_ADDRESS} size={40} />
+            <Blockie address={address} size={40} />
             <div>
-              <p className="text-sm font-semibold text-white">{SHORT_ADDRESS}</p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-xs text-white/50">{ETH_BALANCE}</span>
-              </div>
+              <p className="text-sm font-semibold text-white">{display}</p>
+              <p className="text-xs text-white/50 mt-0.5">Base Mainnet</p>
             </div>
           </div>
           <button
-            onClick={copyAddress}
+            onClick={() => navigator.clipboard.writeText(address)}
             className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/50 hover:text-white transition-colors cursor-pointer"
           >
             <Copy size={13} />
@@ -83,7 +97,10 @@ export default function WalletDropdown() {
 
         <DropdownMenuSeparator className="bg-white/10 my-1" />
 
-        <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer focus:bg-red-500/10 focus:text-red-300">
+        <DropdownMenuItem
+          onClick={logout}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer focus:bg-red-500/10 focus:text-red-300"
+        >
           <LogOut size={16} />
           Sign out
         </DropdownMenuItem>

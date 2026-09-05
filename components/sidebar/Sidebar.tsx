@@ -14,7 +14,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import SidebarNavItem from "./SidebarNavItem";
 import SidebarChatItem from "./SidebarChatItem";
 
-const manrope = Manrope({ subsets: ["latin"], weight: ["700"] });
+const manrope = Manrope({ subsets: ["latin"], weight: ["800"] });
 
 const NAV_ITEMS = [
   { icon: SquarePen, label: "New chat", href: "/" },
@@ -25,7 +25,7 @@ const NAV_ITEMS = [
 ];
 
 const RECENT_CHATS = [
-  { id: "1", title: "Branch · X Space Research", active: true },
+  { id: "1", title: "Branch · X Space Research" },
   { id: "2", title: "Hotel Reservation Confirmation" },
   { id: "3", title: "Base B20 Token Standard" },
   { id: "4", title: "Onchain Summer Buildathon" },
@@ -36,7 +36,7 @@ export default function Sidebar() {
     <aside className="flex flex-col w-[260px] shrink-0 h-full bg-[#0d0d0d] border-r border-white/10">
       {/* Top bar */}
       <div className="flex items-center justify-between px-3 pt-4 pb-2">
-        <span className={`${manrope.className} text-white font-bold text-base tracking-tight px-1`}>
+        <span className={`${manrope.className} text-white font-extrabold text-base tracking-tight px-1`}>
           ALLIGN
         </span>
         <div className="flex items-center gap-1">
@@ -66,7 +66,7 @@ export default function Sidebar() {
       <ScrollArea className="flex-1 px-2">
         <div className="space-y-0.5">
           {RECENT_CHATS.map((chat) => (
-            <SidebarChatItem key={chat.id} title={chat.title} active={chat.active} />
+            <SidebarChatItem key={chat.id} title={chat.title} />
           ))}
         </div>
       </ScrollArea>
