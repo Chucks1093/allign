@@ -2,8 +2,114 @@
 
 import { useEffect, useRef } from "react";
 import { UIMessage } from "@ai-sdk/react";
-import { Plus, Brain, Mic, ArrowUp } from "lucide-react";
+import { Plus, Brain, Mic, ArrowUp, TrendingUp, TrendingDown, AlertCircle, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface PortfolioHolding {
+  ticker: string;
+  name: string;
+  logo: string;
+  tokenTicker: string;
+  shares: number;
+  price: number;
+  value: number;
+  changePercent?: number;
+}
+
+interface PortfolioOutput {
+  holdings: PortfolioHolding[];
+  totalValue: number;
+  error?: string;
+}
+
+function PortfolioCard({ part, onOpenTrade }: { part: any; onOpenTrade: ChatMessagesProps["onOpenTrade"] }) {
+  if (part.state === "input") {
+    return (
+      <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white/40">
+        <Loader2 size={13} className="animate-spin" />
+        Loading portfolio…
+      </div>
+    );
+  }
+
+  if (part.state === "error" || part.output?.error) {
+    return (
+      <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 text-sm text-red-400">
+        <AlertCircle size={13} />
+        {part.output?.error ?? "Failed to load portfolio"}
+      </div>
+    );
+  }
+
+  const p: PortfolioOutput = part.output;
+  if (!p || p.holdings.length === 0) {
+    return (
+      <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white/40">
+        No tokenized stocks in your wallet yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 space-y-3 w-full max-w-xs">
+      <div className="flex items-center justify-between">
+        <p className="text-white font-semibold text-sm">Your Portfolio</p>
+        <p className="text-white/40 text-xs">${p.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+      </div>
+
+      <div className="space-y-2">
+        {p.holdings.map((h) => (
+          <div key={h.ticker} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{h.logo}</span>
+              <div>
+                <p className="text-white text-xs font-medium">{h.name}</p>
+                <p className="text-white/30 text-xs">{h.shares.toFixed(6)} {h.tokenTicker}</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-white text-xs font-medium">${h.value.toFixed(2)}</p>
+              {h.changePercent !== undefined && (
+                <p className={`text-xs ${h.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {h.changePercent >= 0 ? "+" : ""}{h.changePercent.toFixed(2)}%
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2 pt-1">
+        <button
+          onClick={() => onOpenTrade(p.holdings[0].tokenTicker, "buy", p.holdings[0].price)}
+          className="flex-1 py-2 rounded-xl text-xs font-semibold bg-[#a8ff78] hover:bg-[#96f060] text-black transition-all cursor-pointer"
+        >
+          Buy more
+        </button>
+        <button
+          onClick={() => onOpenTrade(p.holdings[0].tokenTicker, "sell", p.holdings[0].price)}
+          className="flex-1 py-2 rounded-xl text-xs font-semibold bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-all cursor-pointer"
+        >
+          Sell
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface QuoteOutput {
+  sym: string;
+  side: "buy" | "sell";
+  amount: string;
+  pricePerShare: number;
+  feedUsd: number;
+  vsFeedPct: number;
+  amountOut: string;
+  amountOutMin: string;
+  receiveUnit: string;
+  poolLiquidityUsdc: number;
+  error?: string;
+}
 
 interface ChatMessagesProps {
   messages: UIMessage[];
@@ -11,6 +117,94 @@ interface ChatMessagesProps {
   input: string;
   onInputChange: (val: string) => void;
   onSend: () => void;
+  onOpenTrade: (sym: string, side: "buy" | "sell", price: number) => void;
+}
+
+function QuoteCard({ part, onOpenTrade }: { part: any; onOpenTrade: ChatMessagesProps["onOpenTrade"] }) {
+  if (part.state === "input") {
+    return (
+      <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white/40">
+        <Loader2 size={13} className="animate-spin" />
+        Fetching live quote…
+      </div>
+    );
+  }
+
+  if (part.state === "error" || part.output?.error) {
+    return (
+      <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 text-sm text-red-400">
+        <AlertCircle size={13} />
+        {part.output?.error ?? "Quote failed"}
+      </div>
+    );
+  }
+
+  const q: QuoteOutput = part.output;
+  if (!q) return null;
+
+  const isBuy = q.side === "buy";
+  const deviation = Math.abs(q.vsFeedPct) > 2;
+
+  return (
+    <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 space-y-3 w-full max-w-xs">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-white font-semibold text-sm">{q.sym}</p>
+          <p className="text-white/40 text-xs">{isBuy ? "Buy order" : "Sell order"} · ${parseFloat(q.amount).toLocaleString()} {isBuy ? "USDC" : q.sym}</p>
+        </div>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isBuy ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
+          {isBuy ? "BUY" : "SELL"}
+        </span>
+      </div>
+
+      {/* Price row */}
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="bg-[#111] rounded-xl px-3 py-2">
+          <p className="text-white/30 mb-0.5">Price/share</p>
+          <p className="text-white font-medium">${q.pricePerShare.toFixed(4)}</p>
+        </div>
+        <div className="bg-[#111] rounded-xl px-3 py-2">
+          <p className="text-white/30 mb-0.5">You receive</p>
+          <p className="text-white font-medium">{q.amountOut} {q.receiveUnit}</p>
+        </div>
+      </div>
+
+      {/* Deviation warning */}
+      {deviation && (
+        <div className="flex items-center gap-1.5 text-xs text-yellow-400">
+          <AlertCircle size={11} />
+          Price deviates {q.vsFeedPct.toFixed(2)}% from Chainlink feed
+        </div>
+      )}
+
+      {/* vs feed */}
+      <div className="flex items-center justify-between text-xs text-white/30">
+        <span className="flex items-center gap-1">
+          {q.vsFeedPct >= 0 ? <TrendingUp size={11} className="text-emerald-400" /> : <TrendingDown size={11} className="text-red-400" />}
+          vs Chainlink
+        </span>
+        <span className={q.vsFeedPct >= 0 ? "text-emerald-400" : "text-red-400"}>
+          {q.vsFeedPct >= 0 ? "+" : ""}{q.vsFeedPct.toFixed(3)}%
+        </span>
+      </div>
+
+      {/* Trade button */}
+      <button
+        onClick={() => onOpenTrade(q.sym, q.side, q.pricePerShare)}
+        disabled={deviation}
+        className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+          deviation
+            ? "bg-white/5 text-white/20 cursor-not-allowed"
+            : isBuy
+            ? "bg-[#a8ff78] hover:bg-[#96f060] text-black"
+            : "bg-red-500 hover:bg-red-400 text-white"
+        }`}
+      >
+        {isBuy ? `Buy ${q.sym}` : `Sell ${q.sym}`} →
+      </button>
+    </div>
+  );
 }
 
 export default function ChatMessages({
@@ -19,6 +213,7 @@ export default function ChatMessages({
   input,
   onInputChange,
   onSend,
+  onOpenTrade,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -31,22 +226,39 @@ export default function ChatMessages({
       <ScrollArea className="flex-1">
         <div className="px-8 py-8 space-y-6 max-w-3xl mx-auto">
           {messages.map((msg) => {
-            const text = msg.parts
-              .filter((p) => p.type === "text")
-              .map((p) => p.text)
-              .join("");
-
-            return msg.role === "user" ? (
-              <div key={msg.id} className="flex justify-end">
-                <div className="max-w-[70%] bg-[#2f2f2f] text-white rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed">
-                  {text}
+            if (msg.role === "user") {
+              const text = msg.parts
+                .filter((p) => p.type === "text")
+                .map((p: any) => p.text)
+                .join("");
+              return (
+                <div key={msg.id} className="flex justify-end">
+                  <div className="max-w-[70%] bg-[#2f2f2f] text-white rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed">
+                    {text}
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div key={msg.id} className="flex justify-start">
-                <p className="max-w-[80%] text-white text-sm leading-relaxed whitespace-pre-wrap">
-                  {text}
-                </p>
+              );
+            }
+
+            // Assistant message — render each part
+            return (
+              <div key={msg.id} className="flex flex-col gap-3 items-start">
+                {msg.parts.map((part: any, i: number) => {
+                  if (part.type === "text" && part.text) {
+                    return (
+                      <p key={i} className="max-w-[80%] text-white text-sm leading-relaxed whitespace-pre-wrap">
+                        {part.text}
+                      </p>
+                    );
+                  }
+                  if (part.type === "tool-getQuote") {
+                    return <QuoteCard key={i} part={part} onOpenTrade={onOpenTrade} />;
+                  }
+                  if (part.type === "tool-getPortfolio") {
+                    return <PortfolioCard key={i} part={part} onOpenTrade={onOpenTrade} />;
+                  }
+                  return null;
+                })}
               </div>
             );
           })}
