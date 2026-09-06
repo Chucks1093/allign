@@ -5,6 +5,7 @@ export interface Stock {
   contract: `0x${string}`;
   feedAddress: `0x${string}`;
   logo: string;         // emoji fallback for now
+  tradable?: boolean;   // false = feed exists but Ozmium trading not yet live
 }
 
 export const STOCKS: Stock[] = [
@@ -71,6 +72,7 @@ export const STOCKS: Stock[] = [
     contract: "0xb200000000000000000000c85a31389D71F3ecfb",
     feedAddress: "0x408e44f504A7371a345F03a73dDC96A4b48e8aa7",
     logo: "🔷",
+    tradable: false,
   },
   {
     name: "MicroStrategy",
@@ -87,6 +89,7 @@ export const STOCKS: Stock[] = [
     contract: "0xB2000000000000000000004AFF16039bA04bdFBc",
     feedAddress: "0xAB657C39bac0D5886250D70849e2E3E008F2EECB",
     logo: "💙",
+    tradable: false,
   },
   {
     name: "SpaceX",
@@ -103,6 +106,7 @@ export const STOCKS: Stock[] = [
     contract: "0xB20000000000000000000019f6E7C675b73C2e4D",
     feedAddress: "0x0231cF2635D1E17bB5c2462cc7504Ba1fBd61f33",
     logo: "⭕",
+    tradable: false,
   },
   {
     name: "SanDisk",
