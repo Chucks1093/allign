@@ -20,12 +20,13 @@ interface Props {
   price: number;
   onClose: () => void;
   initialTab?: Tab;
+  initialAmount?: string;
 }
 
-export default function BuyModal({ stock, price, onClose, initialTab = "Buy" }: Props) {
+export default function BuyModal({ stock, price, onClose, initialTab = "Buy", initialAmount }: Props) {
   const { wallets } = useWallets();
   const [tab, setTab] = useState<Tab>(initialTab);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialAmount ?? "");
   const [quote, setQuote] = useState<OzmiumQuoteResult | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);

@@ -14,6 +14,7 @@ interface TradeModalState {
   stock: Stock;
   price: number;
   initialTab: "Buy" | "Sell";
+  initialAmount?: string;
 }
 
 export default function ChatArea() {
@@ -47,10 +48,10 @@ export default function ChatArea() {
     setInput("");
   }
 
-  function handleOpenTrade(sym: string, side: "buy" | "sell", price: number) {
+  function handleOpenTrade(sym: string, side: "buy" | "sell", price: number, initialAmount?: string) {
     const stock = STOCKS.find((s) => s.tokenTicker === sym);
     if (!stock) return;
-    setTradeModal({ stock, price, initialTab: side === "buy" ? "Buy" : "Sell" });
+    setTradeModal({ stock, price, initialTab: side === "buy" ? "Buy" : "Sell", initialAmount });
   }
 
   return (
@@ -77,6 +78,7 @@ export default function ChatArea() {
           stock={tradeModal.stock}
           price={tradeModal.price}
           initialTab={tradeModal.initialTab}
+          initialAmount={tradeModal.initialAmount}
           onClose={() => setTradeModal(null)}
         />
       )}

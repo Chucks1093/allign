@@ -73,6 +73,33 @@ export async function POST(req: Request) {
         },
       }),
 
+      getPrice: tool({
+        description: "Get the current Chainlink price for a tokenized stock. Use this when the user asks how much a stock costs or its current price, without wanting to trade.",
+        inputSchema: zodSchema(z.object({
+          sym: z.string().describe("Token ticker e.g. NVDAc, AAPLc"),
+        })),
+        execute: async ({ sym }: { sym: string }) => {
+          try {
+            const prices = await getAllPrices();
+            const found = prices.find(
+              (p) => p.stock.tokenTicker.toLowerCase() === sym.toLowerCase() ||
+                     p.stock.ticker.toLowerCase() === sym.toLowerCase()
+            );
+            if (!found) return { error: `Unknown ticker: ${sym}` };
+            return {
+              sym: found.stock.tokenTicker,
+              name: found.stock.name,
+              logo: found.stock.logo,
+              price: found.price,
+              changePercent: found.changePercent,
+              updatedAt: found.updatedAt,
+            };
+          } catch (e: any) {
+            return { error: e.message ?? "Price lookup failed" };
+          }
+        },
+      }),
+
       getPortfolio: tool({
         description: "Get the user's current tokenized stock holdings and portfolio value. Call this when the user asks about their portfolio, holdings, or positions.",
         inputSchema: zodSchema(z.object({})),

@@ -57,41 +57,42 @@ function PortfolioCard({ part, onOpenTrade }: { part: any; onOpenTrade: ChatMess
         <p className="text-white/40 text-xs">${p.totalValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {p.holdings.map((h) => (
-          <div key={h.ticker} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{h.logo}</span>
-              <div>
-                <p className="text-white text-xs font-medium">{h.name}</p>
-                <p className="text-white/30 text-xs">{h.shares.toFixed(6)} {h.tokenTicker}</p>
+          <div key={h.ticker}>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{h.logo}</span>
+                <div>
+                  <p className="text-white text-xs font-medium">{h.name}</p>
+                  <p className="text-white/30 text-xs">{h.shares.toFixed(6)} {h.tokenTicker}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-white text-xs font-medium">${h.value.toFixed(2)}</p>
+                {h.changePercent !== undefined && (
+                  <p className={`text-xs ${h.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {h.changePercent >= 0 ? "+" : ""}{h.changePercent.toFixed(2)}%
+                  </p>
+                )}
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-white text-xs font-medium">${h.value.toFixed(2)}</p>
-              {h.changePercent !== undefined && (
-                <p className={`text-xs ${h.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {h.changePercent >= 0 ? "+" : ""}{h.changePercent.toFixed(2)}%
-                </p>
-              )}
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => onOpenTrade(h.tokenTicker, "buy", h.price)}
+                className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-[#a8ff78]/20 hover:bg-[#a8ff78]/30 text-[#a8ff78] transition-all cursor-pointer"
+              >
+                Buy
+              </button>
+              <button
+                onClick={() => onOpenTrade(h.tokenTicker, "sell", h.price)}
+                className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-red-500/15 hover:bg-red-500/25 text-red-400 transition-all cursor-pointer"
+              >
+                Sell
+              </button>
             </div>
           </div>
         ))}
-      </div>
-
-      <div className="flex gap-2 pt-1">
-        <button
-          onClick={() => onOpenTrade(p.holdings[0].tokenTicker, "buy", p.holdings[0].price)}
-          className="flex-1 py-2 rounded-xl text-xs font-semibold bg-[#a8ff78] hover:bg-[#96f060] text-black transition-all cursor-pointer"
-        >
-          Buy more
-        </button>
-        <button
-          onClick={() => onOpenTrade(p.holdings[0].tokenTicker, "sell", p.holdings[0].price)}
-          className="flex-1 py-2 rounded-xl text-xs font-semibold bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-all cursor-pointer"
-        >
-          Sell
-        </button>
       </div>
     </div>
   );
@@ -117,7 +118,45 @@ interface ChatMessagesProps {
   input: string;
   onInputChange: (val: string) => void;
   onSend: () => void;
-  onOpenTrade: (sym: string, side: "buy" | "sell", price: number) => void;
+  onOpenTrade: (sym: string, side: "buy" | "sell", price: number, initialAmount?: string) => void;
+}
+
+function PriceCard({ part }: { part: any }) {
+  if (part.state === "input") {
+    return (
+      <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white/40">
+        <Loader2 size={13} className="animate-spin" />
+        Checking price…
+      </div>
+    );
+  }
+
+  if (part.state === "error" || part.output?.error) {
+    return (
+      <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 text-sm text-red-400">
+        <AlertCircle size={13} />
+        {part.output?.error ?? "Price unavailable"}
+      </div>
+    );
+  }
+
+  const p = part.output;
+  if (!p) return null;
+
+  return (
+    <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-4 w-fit">
+      <span className="text-2xl">{p.logo}</span>
+      <div>
+        <p className="text-white font-semibold text-sm">{p.name} <span className="text-white/30 font-normal">({p.sym})</span></p>
+        <p className="text-white/70 text-lg font-bold">${p.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</p>
+      </div>
+      {p.changePercent !== undefined && (
+        <span className={`text-sm font-semibold ${p.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+          {p.changePercent >= 0 ? "+" : ""}{p.changePercent.toFixed(2)}%
+        </span>
+      )}
+    </div>
+  );
 }
 
 function QuoteCard({ part, onOpenTrade }: { part: any; onOpenTrade: ChatMessagesProps["onOpenTrade"] }) {
@@ -191,7 +230,7 @@ function QuoteCard({ part, onOpenTrade }: { part: any; onOpenTrade: ChatMessages
 
       {/* Trade button */}
       <button
-        onClick={() => onOpenTrade(q.sym, q.side, q.pricePerShare)}
+        onClick={() => onOpenTrade(q.sym, q.side, q.pricePerShare, q.amount)}
         disabled={deviation}
         className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
           deviation
@@ -256,6 +295,9 @@ export default function ChatMessages({
                   }
                   if (part.type === "tool-getPortfolio") {
                     return <PortfolioCard key={i} part={part} onOpenTrade={onOpenTrade} />;
+                  }
+                  if (part.type === "tool-getPrice") {
+                    return <PriceCard key={i} part={part} />;
                   }
                   return null;
                 })}
