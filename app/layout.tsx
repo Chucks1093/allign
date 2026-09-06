@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Sidebar from "@/components/sidebar/Sidebar";
 import ChatHeader from "@/components/chat/ChatHeader";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import PrivyProvider from "@/components/providers/PrivyProvider";
+import WagmiProvider from "@/components/providers/WagmiProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,7 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[#0d0d0d] text-white font-[var(--font-inter)]">
-        <PrivyProvider>
+        <WagmiProvider>
           <TooltipProvider>
             <div className="flex h-screen overflow-hidden">
               <Sidebar />
@@ -35,7 +35,7 @@ export default function RootLayout({
               </div>
             </div>
           </TooltipProvider>
-        </PrivyProvider>
+        </WagmiProvider>
       </body>
     </html>
   );

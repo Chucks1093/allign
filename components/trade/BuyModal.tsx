@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useWallets } from "@privy-io/react-auth";
-import { createWalletClient, createPublicClient, custom, http } from "viem";
+import { useAccount, useWalletClient } from "wagmi";
+import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 import { X, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import type { Stock } from "@/lib/stocks/tokens";
@@ -12,8 +12,8 @@ import { USDC_ADDRESS, ERC20_ABI, USDC_DECIMALS } from "@/lib/0x/constants";
 type Tab = "Buy" | "Sell";
 type Status = "idle" | "signing" | "success" | "error";
 
-const MIN_BUY = 0.3;   // USDC
-const MIN_SELL = 0.000001; // shares
+const MIN_BUY = 0.3;
+const MIN_SELL = 0.000001;
 
 interface Props {
   stock: Stock;
@@ -24,7 +24,8 @@ interface Props {
 }
 
 export default function BuyModal({ stock, price, onClose, initialTab = "Buy", initialAmount }: Props) {
-  const { wallets } = useWallets();
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
   const [tab, setTab] = useState<Tab>(initialTab);
   const [input, setInput] = useState(initialAmount ?? "");
   const [quote, setQuote] = useState<OzmiumQuoteResult | null>(null);
@@ -36,27 +37,25 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
   const [txHashes, setTxHashes] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const evmWallet = wallets.find((w) => w.walletClientType !== "solana");
   const isBuy = tab === "Buy";
 
-  // Fetch USDC + token balances
   useEffect(() => {
-    if (!evmWallet) return;
+    if (!address) return;
     const pc = createPublicClient({ chain: base, transport: http() });
 
-    pc.readContract({ address: USDC_ADDRESS, abi: ERC20_ABI, functionName: "balanceOf", args: [evmWallet.address as `0x${string}`] })
+    pc.readContract({ address: USDC_ADDRESS, abi: ERC20_ABI, functionName: "balanceOf", args: [address] })
       .then((b) => setUsdcBalance(Number(b as bigint) / 10 ** USDC_DECIMALS))
       .catch(() => {});
 
-    pc.readContract({ address: stock.contract, abi: ERC20_ABI, functionName: "balanceOf", args: [evmWallet.address as `0x${string}`] })
+    pc.readContract({ address: stock.contract, abi: ERC20_ABI, functionName: "balanceOf", args: [address] })
       .then((b) => setTokenBalance(Number(b as bigint) / 1e8))
       .catch(() => {});
-  }, [evmWallet, stock.contract]);
+  }, [address, stock.contract]);
 
   const fetchQuote = useCallback(async (amount: string) => {
     const parsed = parseFloat(amount);
     const min = isBuy ? MIN_BUY : MIN_SELL;
-    if (!amount || parsed < min || !evmWallet) {
+    if (!amount || parsed < min || !address) {
       setQuote(null);
       setQuoteError(null);
       return;
@@ -71,7 +70,7 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
           sym: stock.tokenTicker,
           side: tab.toLowerCase(),
           amount,
-          taker: evmWallet.address,
+          taker: address,
           slippageBps: 100,
         }),
       });
@@ -85,7 +84,7 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
     } finally {
       setQuoting(false);
     }
-  }, [stock.tokenTicker, tab, isBuy, evmWallet]);
+  }, [stock.tokenTicker, tab, isBuy, address]);
 
   useEffect(() => {
     const t = setTimeout(() => fetchQuote(input), 700);
@@ -93,15 +92,12 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
   }, [input, fetchQuote]);
 
   async function handleTrade() {
-    if (!evmWallet || !quote) return;
+    if (!address || !walletClient || !quote) return;
     setStatus("signing");
     setErrorMsg(null);
     setTxHashes([]);
     try {
-      const provider = await evmWallet.getEthereumProvider();
-      const walletClient = createWalletClient({ chain: base, transport: custom(provider) });
       const publicClient = createPublicClient({ chain: base, transport: http() });
-      const [account] = await walletClient.getAddresses();
 
       const hashes: string[] = [];
       for (const step of quote.steps) {
@@ -109,7 +105,7 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
           to: step.to,
           data: step.data,
           value: BigInt(step.value),
-          account,
+          account: address,
           chain: base,
         });
         await publicClient.waitForTransactionReceipt({ hash });
@@ -128,15 +124,12 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
   const vsFeedBad = advisory && Math.abs(advisory.vsFeedPct) > 2;
 
   const belowMinimum = parsedInput > 0 && parsedInput < (isBuy ? MIN_BUY : MIN_SELL);
-  const insufficientBalance = isBuy
-    ? parsedInput > usdcBalance
-    : parsedInput > tokenBalance;
+  const insufficientBalance = isBuy ? parsedInput > usdcBalance : parsedInput > tokenBalance;
 
   const canTrade =
-    !!evmWallet && !!quote && !quoting && !belowMinimum &&
+    !!address && !!walletClient && !!quote && !quoting && !belowMinimum &&
     !insufficientBalance && !vsFeedBad && status === "idle";
 
-  // "You receive" display
   const receiveDisplay = () => {
     if (quoting) return <span className="flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> Fetching…</span>;
     if (!advisory) return <span>≈ 0 {isBuy ? stock.tokenTicker : "USDC"}</span>;
@@ -154,7 +147,7 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
     if (status === "signing") return <span className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Signing…</span>;
     if (insufficientBalance) return isBuy ? "Insufficient USDC balance" : `Insufficient ${stock.tokenTicker} balance`;
     if (belowMinimum) return isBuy ? "Minimum $0.30 USDC" : "Amount too small";
-    if (!evmWallet) return "Connect wallet";
+    if (!address) return "Connect wallet";
     if (quoting) return "Getting quote…";
     return isBuy ? `Buy ${stock.ticker}` : `Sell ${stock.ticker}`;
   };
@@ -170,7 +163,6 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
           <X size={18} />
         </button>
 
-        {/* Tabs */}
         <div className="flex items-center gap-1 bg-[#111] rounded-xl p-1 mb-5">
           {(["Buy", "Sell"] as Tab[]).map((t) => (
             <button
@@ -185,7 +177,6 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
           ))}
         </div>
 
-        {/* Stock info */}
         <div className="flex items-center gap-3 mb-5">
           <div className="w-11 h-11 rounded-full bg-[#2a2a2a] flex items-center justify-center text-xl">
             {stock.logo}
@@ -200,7 +191,6 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
           </div>
         </div>
 
-        {/* Amount input */}
         <div className="bg-[#111] rounded-2xl p-4 mb-3">
           <div className="flex items-center justify-between mb-2">
             <span className="text-white/40 text-xs">{isBuy ? "You pay" : "You sell"}</span>
@@ -228,7 +218,6 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
           </div>
         </div>
 
-        {/* Quote details */}
         {advisory && (
           <div className="bg-[#111] rounded-2xl p-3 mb-3 space-y-1.5 text-xs">
             <div className="flex justify-between text-white/40">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useWallets } from "@privy-io/react-auth";
+import { useAccount } from "wagmi";
 import { TrendingUp, TrendingDown, RefreshCw } from "lucide-react";
 
 interface Holding {
@@ -36,20 +36,18 @@ function pct(n?: number) {
 }
 
 export default function PortfolioView() {
-  const { wallets } = useWallets();
+  const { address } = useAccount();
   const [data, setData] = useState<PortfolioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const evmWallet = wallets.find((w) => w.walletClientType !== "solana");
-
   const fetchPortfolio = useCallback(async (isRefresh = false) => {
-    if (!evmWallet) { setLoading(false); return; }
+    if (!address) { setLoading(false); return; }
     if (isRefresh) setRefreshing(true);
     setError(null);
     try {
-      const res = await fetch(`/api/portfolio?address=${evmWallet.address}`);
+      const res = await fetch(`/api/portfolio?address=${address}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setData(json);
@@ -59,13 +57,13 @@ export default function PortfolioView() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [evmWallet]);
+  }, [address]);
 
   useEffect(() => {
     fetchPortfolio();
   }, [fetchPortfolio]);
 
-  if (!evmWallet) {
+  if (!address) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <p className="text-white/40 text-sm">Connect your wallet to view your portfolio</p>

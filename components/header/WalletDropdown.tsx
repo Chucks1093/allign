@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import makeBlockie from "ethereum-blockies-base64";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useAccount, useDisconnect } from "wagmi";
+import { useConnectBaseWallet } from "@/hooks/useConnectBaseWallet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, EyeOff, Settings, LogOut, MoreHorizontal, Copy, Wallet } from "lucide-react";
+import { User, EyeOff, Settings, LogOut, MoreHorizontal, Copy, Wallet, Loader2 } from "lucide-react";
 
 function Blockie({ address, size = 32 }: { address: string; size?: number }) {
   return (
@@ -29,26 +31,26 @@ function shortAddress(addr: string) {
 }
 
 export default function WalletDropdown() {
-  const { ready, authenticated, login, logout } = usePrivy();
-  const { wallets } = useWallets();
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { connect, isConnecting } = useConnectBaseWallet();
 
-  const evmWallet = wallets.find((w) => w.walletClientType !== "solana");
-
-  if (!ready) return null;
-
-  if (!authenticated || !evmWallet) {
+  if (!isConnected || !address) {
     return (
       <button
-        onClick={login}
-        className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full px-4 py-2 text-sm text-white/70 font-medium transition-colors cursor-pointer"
+        onClick={connect}
+        disabled={isConnecting}
+        className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full px-4 py-2 text-sm text-white/70 font-medium transition-colors cursor-pointer disabled:opacity-50"
       >
-        <Wallet size={15} className="text-white/50" />
-        Connect Wallet
+        {isConnecting
+          ? <Loader2 size={15} className="animate-spin text-white/50" />
+          : <Wallet size={15} className="text-white/50" />
+        }
+        {isConnecting ? "Connecting…" : "Connect Wallet"}
       </button>
     );
   }
 
-  const address = evmWallet.address;
   const display = shortAddress(address);
 
   return (
@@ -98,11 +100,11 @@ export default function WalletDropdown() {
         <DropdownMenuSeparator className="bg-white/10 my-1" />
 
         <DropdownMenuItem
-          onClick={logout}
+          onClick={() => disconnect()}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer focus:bg-red-500/10 focus:text-red-300"
         >
           <LogOut size={16} />
-          Sign out
+          Disconnect
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

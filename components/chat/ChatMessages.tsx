@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { UIMessage } from "@ai-sdk/react";
-import { Plus, Brain, Mic, ArrowUp, TrendingUp, TrendingDown, AlertCircle, Loader2 } from "lucide-react";
+import { Plus, Brain, Mic, ArrowUp, TrendingUp, TrendingDown, AlertCircle, Loader2, Bot } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PortfolioHolding {
@@ -119,6 +119,9 @@ interface ChatMessagesProps {
   onInputChange: (val: string) => void;
   onSend: () => void;
   onOpenTrade: (sym: string, side: "buy" | "sell", price: number, initialAmount?: string) => void;
+  onConfirmAgent: (budgetUSD: number, periodDays: number) => void;
+  onRejectAgent: () => void;
+  isAgentActing: boolean;
 }
 
 function PriceCard({ part }: { part: any }) {
@@ -246,6 +249,68 @@ function QuoteCard({ part, onOpenTrade }: { part: any; onOpenTrade: ChatMessages
   );
 }
 
+function parseAgentTag(text: string): { budgetUSD: number; periodDays: number } | null {
+  const m = text.match(/\[ACTION:ACTIVATE_AGENT\s+budgetUSD=(\d+(?:\.\d+)?)\s+periodDays=(\d+)\]/);
+  if (!m) return null;
+  return { budgetUSD: parseFloat(m[1]), periodDays: parseInt(m[2], 10) };
+}
+
+function stripAgentTag(text: string): string {
+  return text.replace(/\[ACTION:ACTIVATE_AGENT[^\]]*\]/g, "").trim();
+}
+
+function AgentActivationCard({
+  budgetUSD,
+  periodDays,
+  onConfirm,
+  onReject,
+  isActing,
+}: {
+  budgetUSD: number;
+  periodDays: number;
+  onConfirm: (budget: number, period: number) => void;
+  onReject: () => void;
+  isActing: boolean;
+}) {
+  return (
+    <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 w-full max-w-xs space-y-3">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-full bg-[#a8ff78]/15 flex items-center justify-center">
+          <Bot size={15} className="text-[#a8ff78]" />
+        </div>
+        <div>
+          <p className="text-white text-sm font-semibold">Activate Trading Agent</p>
+          <p className="text-white/40 text-xs">One wallet signature required</p>
+        </div>
+      </div>
+      <div className="bg-[#111] rounded-xl px-3 py-2 flex items-center justify-between text-xs">
+        <span className="text-white/40">Daily budget</span>
+        <span className="text-white font-semibold">${budgetUSD} USDC</span>
+      </div>
+      <div className="bg-[#111] rounded-xl px-3 py-2 flex items-center justify-between text-xs">
+        <span className="text-white/40">Authorization period</span>
+        <span className="text-white font-semibold">{periodDays} days</span>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onConfirm(budgetUSD, periodDays)}
+          disabled={isActing}
+          className="flex-1 py-2 rounded-xl text-sm font-semibold bg-[#a8ff78] hover:bg-[#96f060] text-black disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        >
+          {isActing ? <span className="flex items-center justify-center gap-1.5"><Loader2 size={13} className="animate-spin" /> Signing…</span> : "Confirm"}
+        </button>
+        <button
+          onClick={onReject}
+          disabled={isActing}
+          className="flex-1 py-2 rounded-xl text-sm font-semibold bg-white/5 hover:bg-white/10 text-white/60 disabled:opacity-50 transition-colors cursor-pointer"
+        >
+          Reject
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ChatMessages({
   messages,
   isLoading,
@@ -253,6 +318,9 @@ export default function ChatMessages({
   onInputChange,
   onSend,
   onOpenTrade,
+  onConfirmAgent,
+  onRejectAgent,
+  isAgentActing,
 }: ChatMessagesProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -284,10 +352,25 @@ export default function ChatMessages({
               <div key={msg.id} className="flex flex-col gap-3 items-start">
                 {msg.parts.map((part: any, i: number) => {
                   if (part.type === "text" && part.text) {
+                    const agentTag = parseAgentTag(part.text);
+                    const displayText = stripAgentTag(part.text);
                     return (
-                      <p key={i} className="max-w-[80%] text-white text-sm leading-relaxed whitespace-pre-wrap">
-                        {part.text}
-                      </p>
+                      <div key={i} className="flex flex-col gap-3 max-w-[80%]">
+                        {displayText && (
+                          <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">
+                            {displayText}
+                          </p>
+                        )}
+                        {agentTag && (
+                          <AgentActivationCard
+                            budgetUSD={agentTag.budgetUSD}
+                            periodDays={agentTag.periodDays}
+                            onConfirm={onConfirmAgent}
+                            onReject={onRejectAgent}
+                            isActing={isAgentActing}
+                          />
+                        )}
+                      </div>
                     );
                   }
                   if (part.type === "tool-getQuote") {

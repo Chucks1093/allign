@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useWallets } from "@privy-io/react-auth";
-import { createWalletClient, createPublicClient, custom, http, isAddress } from "viem";
+import { useAccount, useWalletClient } from "wagmi";
+import { createPublicClient, http, isAddress } from "viem";
 import { base } from "viem/chains";
 import { Gift, Loader2, CheckCircle2, AlertCircle, ArrowRight, ChevronDown } from "lucide-react";
 
@@ -37,8 +37,8 @@ function shortAddr(addr: string) {
 }
 
 export default function GiftView() {
-  const { wallets } = useWallets();
-  const evmWallet = wallets.find((w) => w.walletClientType !== "solana");
+  const { address } = useAccount();
+  const { data: walletClient } = useWalletClient();
 
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loadingHoldings, setLoadingHoldings] = useState(true);
@@ -51,9 +51,9 @@ export default function GiftView() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const fetchHoldings = useCallback(async () => {
-    if (!evmWallet) { setLoadingHoldings(false); return; }
+    if (!address) { setLoadingHoldings(false); return; }
     try {
-      const res = await fetch(`/api/portfolio?address=${evmWallet.address}`);
+      const res = await fetch(`/api/portfolio?address=${address}`);
       const json = await res.json();
       setHoldings(json.holdings ?? []);
       if (json.holdings?.length > 0) setSelected(json.holdings[0]);
@@ -62,7 +62,7 @@ export default function GiftView() {
     } finally {
       setLoadingHoldings(false);
     }
-  }, [evmWallet]);
+  }, [address]);
 
   useEffect(() => { fetchHoldings(); }, [fetchHoldings]);
 
@@ -82,10 +82,10 @@ export default function GiftView() {
   const usdValue = parsedAmount * (selected?.price ?? 0);
 
   const canSend =
-    !!evmWallet && !!selected && recipientValid && amountValid && status === "idle";
+    !!address && !!walletClient && !!selected && recipientValid && amountValid && status === "idle";
 
   async function handleSend() {
-    if (!canSend || !evmWallet || !selected) return;
+    if (!canSend || !address || !walletClient || !selected) return;
     const contractAddr = stockContracts[selected.tokenTicker];
     if (!contractAddr) { setErrorMsg("Contract not found"); return; }
 
@@ -93,10 +93,7 @@ export default function GiftView() {
     setErrorMsg(null);
     setTxHash(null);
     try {
-      const provider = await evmWallet.getEthereumProvider();
-      const walletClient = createWalletClient({ chain: base, transport: custom(provider) });
       const publicClient = createPublicClient({ chain: base, transport: http() });
-      const [account] = await walletClient.getAddresses();
 
       const rawAmount = BigInt(Math.round(parsedAmount * 1e8));
       const hash = await walletClient.writeContract({
@@ -104,7 +101,7 @@ export default function GiftView() {
         abi: TRANSFER_ABI,
         functionName: "transfer",
         args: [recipient as `0x${string}`, rawAmount],
-        account,
+        account: address,
         chain: base,
       });
       await publicClient.waitForTransactionReceipt({ hash });
@@ -125,7 +122,7 @@ export default function GiftView() {
     fetchHoldings();
   }
 
-  if (!evmWallet) {
+  if (!address) {
     return (
       <div className="px-6 py-20 flex flex-col items-center gap-3 text-center">
         <Gift size={40} className="text-white/20" />

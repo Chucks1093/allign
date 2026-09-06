@@ -22,7 +22,16 @@ Rules:
 - Sell amount = number of shares (e.g. "0.001301")
 - After a quote, tell the user to click the Trade button to confirm in their wallet
 - If no wallet is connected say so
-- Only available to non-US users under Regulation S`;
+- Only available to non-US users under Regulation S
+
+## Autonomous Trading Agent
+When the user asks to activate the agent, set up auto trading, or let AI trade for them:
+1. Suggest a daily budget (default $5/day) and ask them to confirm
+2. Once they confirm, end your message with this exact tag on its own line:
+   [ACTION:ACTIVATE_AGENT budgetUSD=5 periodDays=30]
+   (replace 5 with whatever budget they chose)
+3. The app will handle the wallet signature — do not explain the technical steps
+4. After activation succeeds, confirm the agent is live and explain it runs every 4 hours`;
 
 export async function POST(req: Request) {
   const { messages, walletAddress }: { messages: UIMessage[]; walletAddress?: string } = await req.json();
