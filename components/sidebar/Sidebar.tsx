@@ -7,6 +7,7 @@ import {
   TrendingUp,
   Gift,
   Briefcase,
+  Bot,
 } from "lucide-react";
 import { Manrope } from "next/font/google";
 import { Separator } from "@/components/ui/separator";
@@ -21,7 +22,7 @@ const NAV_ITEMS = [
   { icon: TrendingUp, label: "Stocks", href: "/explore" },
   { icon: Briefcase, label: "Portfolio", href: "/portfolio" },
   { icon: Gift, label: "Gifts", href: "/gift" },
-  { icon: CalendarClock, label: "Scheduled", href: "/scheduled" },
+  { icon: Bot, label: "Agent", href: "/agent" },
 ];
 
 const RECENT_CHATS = [

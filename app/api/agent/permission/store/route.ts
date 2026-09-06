@@ -9,11 +9,13 @@ export async function POST(req: NextRequest) {
       permission,
       budgetUsdc,
       periodDays,
+      isActive,
     }: {
       walletAddress: string;
       permission: object;
       budgetUsdc: number;
       periodDays: number;
+      isActive?: boolean;
     } = await req.json();
 
     if (!walletAddress || !permission) {
@@ -26,11 +28,11 @@ export async function POST(req: NextRequest) {
     const periodSeconds = periodDays * 86400;
     const now = Math.floor(Date.now() / 1000);
 
-    await supabase.from("agent_configs").upsert(
+    await supabase.from("settings").upsert(
       {
         wallet_address: walletAddress.toLowerCase(),
         daily_budget_usdc: budgetUsdc,
-        is_active: true,
+        is_active: isActive ?? true,
         spend_permission_json: permission,
         permission_expires_at: new Date((now + periodSeconds) * 1000).toISOString(),
         updated_at: new Date().toISOString(),
@@ -54,7 +56,7 @@ export async function GET(req: NextRequest) {
     const supabase = createClient(cookieStore);
 
     const { data } = await supabase
-      .from("agent_configs")
+      .from("settings")
       .select("*")
       .eq("wallet_address", wallet.toLowerCase())
       .single();
