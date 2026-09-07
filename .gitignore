@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+agent.log
+scripts/refund-agent.mjs
 
 # debug
 npm-debug.log*

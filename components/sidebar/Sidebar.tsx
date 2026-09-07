@@ -1,53 +1,28 @@
 "use client";
 
-import {
-  SquarePen,
-  Search,
-  CalendarClock,
-  TrendingUp,
-  Gift,
-  Briefcase,
-  Bot,
-} from "lucide-react";
+import { SquarePen, TrendingUp, Gift, Briefcase, Bot } from "lucide-react";
 import { Manrope } from "next/font/google";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import Link from "next/link";
 import SidebarNavItem from "./SidebarNavItem";
-import SidebarChatItem from "./SidebarChatItem";
 
 const manrope = Manrope({ subsets: ["latin"], weight: ["800"] });
 
 const NAV_ITEMS = [
-  { icon: SquarePen, label: "New chat", href: "/" },
-  { icon: TrendingUp, label: "Stocks", href: "/explore" },
-  { icon: Briefcase, label: "Portfolio", href: "/portfolio" },
-  { icon: Gift, label: "Gifts", href: "/gift" },
-  { icon: Bot, label: "Agent", href: "/agent" },
-];
-
-const RECENT_CHATS = [
-  { id: "1", title: "Branch · X Space Research" },
-  { id: "2", title: "Hotel Reservation Confirmation" },
-  { id: "3", title: "Base B20 Token Standard" },
-  { id: "4", title: "Onchain Summer Buildathon" },
+  { icon: SquarePen, label: "New chat", href: "/app" },
+  { icon: TrendingUp, label: "Stocks", href: "/app/explore" },
+  { icon: Briefcase, label: "Portfolio", href: "/app/portfolio" },
+  { icon: Gift, label: "Gifts", href: "/app/gift" },
+  { icon: Bot, label: "Agent", href: "/app/agent" },
 ];
 
 export default function Sidebar() {
   return (
-    <aside className="flex flex-col w-[260px] shrink-0 h-full bg-[#0d0d0d] border-r border-white/10">
+    <aside className="flex flex-col w-[220px] shrink-0 h-full bg-[#0d0d0d] border-r border-white/10">
       {/* Top bar */}
       <div className="flex items-center justify-between px-3 pt-4 pb-2">
         <span className={`${manrope.className} text-white font-extrabold text-base tracking-tight px-1`}>
           ALLIGN
         </span>
-        <div className="flex items-center gap-1">
-          <button className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer">
-            <Search size={16} />
-          </button>
-          <button className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer">
-            <SquarePen size={16} />
-          </button>
-        </div>
       </div>
 
       {/* Nav items */}
@@ -57,35 +32,23 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <Separator className="my-3 bg-white/10" />
+      <div className="flex-1" />
 
-      {/* Recents */}
-      <div className="px-3 mb-2">
-        <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Recents</p>
-      </div>
-
-      <ScrollArea className="flex-1 px-2">
-        <div className="space-y-0.5">
-          {RECENT_CHATS.map((chat) => (
-            <SidebarChatItem key={chat.id} title={chat.title} />
-          ))}
-        </div>
-      </ScrollArea>
-
-      {/* Bottom user */}
-      <div className="px-3 py-3 border-t border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-            NG
+      {/* Gift card */}
+      <div className="px-3 py-3">
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-center py-5 bg-white/[0.03]">
+            <img src="/icons/gift.svg" alt="Gift" width={40} height={40} />
           </div>
-          <div className="min-w-0">
-            <p className="text-sm text-white truncate font-medium leading-tight">nice guy</p>
-            <p className="text-xs text-white/40">Free</p>
+          <div className="p-3 space-y-2">
+            <p className="text-xs text-white/50 leading-relaxed text-center">
+              Gift US stocks to anyone, instantly onchain.
+            </p>
+            <Link href="/app/gift" className="w-full flex items-center justify-center text-xs font-semibold bg-[#a8ff78] hover:bg-[#96f060] text-black py-2 rounded-xl transition-colors">
+              Gift a Stock
+            </Link>
           </div>
         </div>
-        <button className="text-xs text-white bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-full transition-colors shrink-0 font-medium cursor-pointer">
-          Upgrade
-        </button>
       </div>
     </aside>
   );
