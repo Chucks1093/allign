@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const pk = process.env.OZMIUM_SERVER_WALLET_PRIVATE_KEY;
+    const pk = process.env.OZMIUM_SERVER_WALLET_PRIVATE_KEY?.trim();
     if (!pk) return NextResponse.json({ error: "No spender configured" }, { status: 500 });
 
     const normalized = pk.startsWith("0x") ? pk : `0x${pk}`;
