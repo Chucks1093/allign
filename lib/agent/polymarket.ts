@@ -1,5 +1,6 @@
 import type { PolymarketMarket } from "./types";
 import { STOCKS } from "@/lib/stocks/tokens";
+import { log } from "./logger";
 
 const GAMMA_API = "https://gamma-api.polymarket.com";
 
@@ -69,32 +70,18 @@ async function fetchMarketsForQuery(query: string): Promise<PolymarketMarket[]> 
 }
 
 function scoreMarket(market: PolymarketMarket): number {
-  const consensus = clamp(market.lastPrice ?? market.bestBid ?? 0.5);
+  const ask = market.bestAsk ?? market.lastPrice ?? 0.5;
 
-  // Time decay: prefer markets resolving sooner
-  let fT = 0.5;
-  if (market.endsAt) {
-    const daysToEnd = (new Date(market.endsAt).getTime() - Date.now()) / 86_400_000;
-    fT = daysToEnd <= 0 ? 0 : clamp(1 - daysToEnd / 180);
-  }
+  // Upside potential: low ask = big potential gain if it resolves YES
+  const upside = Math.max(0, 1 - ask);
 
-  // Liquidity score (logistic saturation at ~$5k)
-  const fL = logistic(market.liquidity, 0.002);
+  // Weight by log liquidity — deep markets are more reliable signals
+  const liqWeight = Math.log10(Math.max(1, market.liquidity));
 
-  // Spread quality
-  const spread = market.bestAsk != null && market.bestBid != null
-    ? market.bestAsk - market.bestBid : 0.1;
-  const fSpr = clamp(1 - clamp(spread, 0, 0.2) / 0.2);
+  const raw = upside * (1 + liqWeight);
 
-  // Volume / activity
-  const fVol = logistic(market.volume24h, 0.001);
-
-  return clamp(
-    0.40 * consensus +
-    0.20 * fT +
-    0.20 * (0.7 * fL + 0.3 * fSpr) +
-    0.20 * fVol
-  );
+  // Normalise to 0-1 using logistic (raw can exceed 1 on high-liquidity markets)
+  return clamp(logistic(raw * 10 - 5, 1));
 }
 
 export interface PolymarketSignal {
@@ -121,7 +108,7 @@ export async function scorePolymarket(): Promise<PolymarketSignal[]> {
     const unique = Array.from(new Map(markets.map((m) => [m.id, m])).values());
 
     if (unique.length === 0) {
-      // No Polymarket signal → neutral (0.5)
+      log(`[polymarket] ${stock.ticker}: no markets found → score=0.5 (neutral)`);
       results.push({ ticker: stock.ticker, score: 0.5, marketsFound: 0 });
       continue;
     }
@@ -138,6 +125,7 @@ export async function scorePolymarket(): Promise<PolymarketSignal[]> {
     // Top market by score for display
     const top = scored.sort((a, b) => b.score - a.score)[0];
 
+    log(`[polymarket] ${stock.ticker}: ${unique.length} markets found, weightedScore=${weightedScore.toFixed(3)}, top="${top.market.question}" ask=${top.market.bestAsk} → score=${clamp(weightedScore).toFixed(3)}`);
     results.push({
       ticker: stock.ticker,
       score: clamp(weightedScore),

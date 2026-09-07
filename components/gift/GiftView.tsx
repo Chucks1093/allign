@@ -38,7 +38,7 @@ function shortAddr(addr: string) {
 
 export default function GiftView() {
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const { data: walletClient } = useWalletClient({ chainId: 8453 });
 
   const [holdings, setHoldings] = useState<Holding[]>([]);
   const [loadingHoldings, setLoadingHoldings] = useState(true);

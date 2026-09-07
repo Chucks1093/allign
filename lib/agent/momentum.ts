@@ -1,4 +1,5 @@
 import { getAllPrices, type StockPrice } from "@/lib/stocks/prices";
+import { log } from "./logger";
 
 function sigmoid(x: number): number {
   return 1 / (1 + Math.exp(-x));
@@ -16,7 +17,9 @@ export interface MomentumResult {
 }
 
 export async function scoreMomentum(): Promise<MomentumResult[]> {
+  log("[momentum] fetching prices...");
   const prices = await getAllPrices();
+  log("[momentum] raw prices:", prices.map((p) => ({ ticker: p.stock.ticker, price: p.price, change: p.changePercent, error: p.error })));
   const valid = prices.filter((p) => !p.error && p.price > 0 && p.changePercent !== undefined);
 
   if (valid.length === 0) return [];
@@ -27,7 +30,8 @@ export async function scoreMomentum(): Promise<MomentumResult[]> {
   const variance = changes.reduce((a, b) => a + (b - mean) ** 2, 0) / changes.length;
   const stddev = Math.sqrt(variance) || 1;
 
-  return prices.map((p) => {
+  log(`[momentum] universe mean=${mean.toFixed(4)} stddev=${stddev.toFixed(4)}`);
+  const results = prices.map((p) => {
     if (p.error || p.price <= 0) {
       return { ticker: p.stock.ticker, price: 0, change24h: 0, score: 0.5 };
     }
@@ -43,4 +47,6 @@ export async function scoreMomentum(): Promise<MomentumResult[]> {
       score,
     };
   });
+  log("[momentum] scores:", results.map((r) => ({ ticker: r.ticker, change24h: r.change24h, score: r.score })));
+  return results;
 }

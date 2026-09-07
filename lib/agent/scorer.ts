@@ -1,18 +1,20 @@
 import type { SignalScores, TradeSignal, StockSignal } from "./types";
 import type { Stock } from "@/lib/stocks/tokens";
 
-// Signal weights — must sum to 1.0
 const WEIGHTS = {
-  momentum: 0.30,
-  polymarket: 0.25,
-  sentiment: 0.20,
-  poolHealth: 0.15,
-  relativeStrength: 0.10,
+  momentum: 0.35,
+  sentiment: 0.30,
+  poolHealth: 0.20,
+  polymarket: 0.10,
+  relativeStrength: 0.05,
 } as const;
 
-const BUY_THRESHOLD = 0.65;
+const BUY_THRESHOLD = 0.62;
 const SELL_THRESHOLD = 0.35;
-const MAX_KELLY_FRACTION = 0.10; // Never more than 10% of budget per trade
+const MAX_KELLY_FRACTION = 0.10;
+
+// Minimum absolute price move to qualify as real momentum — not just "least bad on a slow day"
+const MIN_MOMENTUM_CHANGE = 0.5; // must be up at least +0.5% in absolute terms
 
 function clamp(x: number, min = 0, max = 1): number {
   return Math.max(min, Math.min(max, x));
@@ -22,35 +24,7 @@ function kellyFraction(composite: number): number {
   const edge = composite - 0.5;
   if (edge <= 0) return 0;
   const kellyFull = edge / (1 - edge);
-  const kellyHalf = kellyFull * 0.5; // Half-Kelly: more conservative
-  return clamp(kellyHalf, 0, MAX_KELLY_FRACTION);
-}
-
-function buildReasoning(
-  stock: Stock,
-  scores: SignalScores,
-  composite: number,
-  signal: TradeSignal,
-  change24h: number
-): string {
-  const parts: string[] = [];
-
-  if (signal === "buy") {
-    if (scores.momentum > 0.6) parts.push(`price +${change24h.toFixed(2)}% (strong momentum)`);
-    if (scores.polymarket > 0.6) parts.push(`Polymarket consensus bullish`);
-    if (scores.sentiment > 0.65) parts.push(`positive news sentiment`);
-    if (scores.relativeStrength > 0.7) parts.push(`outperforming B20 peers`);
-    return `Buy signal (${(composite * 100).toFixed(0)}% confidence): ${parts.join(", ") || "composite signals favorable"}.`;
-  }
-
-  if (signal === "sell") {
-    if (scores.momentum < 0.4) parts.push(`price ${change24h.toFixed(2)}% (weakening)`);
-    if (scores.sentiment < 0.35) parts.push(`negative news sentiment`);
-    if (scores.relativeStrength < 0.3) parts.push(`underperforming peers`);
-    return `Sell signal (${(composite * 100).toFixed(0)}% confidence): ${parts.join(", ") || "composite signals unfavorable"}.`;
-  }
-
-  return `Hold — composite score ${(composite * 100).toFixed(0)}%, insufficient signal strength.`;
+  return clamp(kellyFull * 0.5, 0, MAX_KELLY_FRACTION);
 }
 
 export function computeSignal(
@@ -61,21 +35,44 @@ export function computeSignal(
 ): StockSignal {
   const composite = clamp(
     WEIGHTS.momentum * scores.momentum +
-    WEIGHTS.polymarket * scores.polymarket +
     WEIGHTS.sentiment * scores.sentiment +
     WEIGHTS.poolHealth * scores.poolHealth +
+    WEIGHTS.polymarket * scores.polymarket +
     WEIGHTS.relativeStrength * scores.relativeStrength
   );
 
   let signal: TradeSignal = "hold";
-  if (composite >= BUY_THRESHOLD && scores.poolHealth > 0) signal = "buy";
-  else if (composite <= SELL_THRESHOLD) signal = "sell";
 
-  // Non-tradable stocks can never be bought
+  const hasRealMomentum = change24h >= MIN_MOMENTUM_CHANGE;
+  const hasGoodSentiment = scores.sentiment >= 0.55;
+  const isTradable = scores.poolHealth > 0;
+
+  // Buy only when: composite high enough AND stock is actually moving up AND tradable
+  if (composite >= BUY_THRESHOLD && isTradable && hasRealMomentum) {
+    signal = "buy";
+  } else if (composite <= SELL_THRESHOLD) {
+    signal = "sell";
+  }
+
   if (stock.tradable === false && signal === "buy") signal = "hold";
 
   const kelly = signal === "buy" ? kellyFraction(composite) : 0;
-  const reasoning = buildReasoning(stock, scores, composite, signal, change24h);
+
+  const reasons: string[] = [];
+  if (signal === "buy") {
+    reasons.push(`+${change24h.toFixed(2)}% momentum`);
+    if (hasGoodSentiment) reasons.push(`positive sentiment (${(scores.sentiment * 100).toFixed(0)})`);
+    if (scores.polymarket > 0.55) reasons.push(`Polymarket bullish`);
+  } else if (signal === "sell") {
+    if (change24h < 0) reasons.push(`${change24h.toFixed(2)}% momentum`);
+    if (scores.sentiment < 0.4) reasons.push(`negative sentiment`);
+  } else {
+    if (!isTradable) reasons.push("pool not tradable");
+    else if (!hasRealMomentum) reasons.push(`only +${change24h.toFixed(2)}% (need +${MIN_MOMENTUM_CHANGE}%)`);
+    else reasons.push(`composite ${(composite * 100).toFixed(0)} below threshold`);
+  }
+
+  const reasoning = `${signal.toUpperCase()} (composite ${(composite * 100).toFixed(0)}%): ${reasons.join(", ")}.`;
 
   return {
     stock,

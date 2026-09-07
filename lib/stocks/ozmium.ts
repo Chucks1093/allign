@@ -75,7 +75,8 @@ export async function fetchStocks(): Promise<OzmiumStock[]> {
   const paidFetch = getOzmiumFetch();
   const res = await paidFetch(`${OZMIUM_BASE}/stocks`);
   if (!res.ok) throw new Error(`Ozmium /v1/stocks failed: ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  return data.stocks ?? data;
 }
 
 export async function fetchStockQuote(params: StockQuoteParams): Promise<OzmiumQuoteResult> {

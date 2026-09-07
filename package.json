@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "agent": "bash scripts/test-agent.sh",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"

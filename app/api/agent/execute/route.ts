@@ -1,25 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { privateKeyToAccount } from "viem/accounts";
-import { createWalletClient, createPublicClient, http } from "viem";
-import { base } from "viem/chains";
+import { CdpClient } from "@coinbase/cdp-sdk";
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { scoreAllStocks, getTradeDecisions } from "@/lib/agent/signals";
 import { fetchStockQuote } from "@/lib/stocks/ozmium";
+import { log, logSeparator } from "@/lib/agent/logger";
 
 export const maxDuration = 300;
 
-function getServerWallet() {
+const MIN_POOL_LIQUIDITY_USDC = 500; // skip stocks with < $500 in the pool
+
+async function getAgentSmartAccount() {
   const pk = process.env.OZMIUM_SERVER_WALLET_PRIVATE_KEY!;
   const normalized = pk.startsWith("0x") ? pk : `0x${pk}`;
-  const account = privateKeyToAccount(normalized as `0x${string}`);
-  const walletClient = createWalletClient({ account, chain: base, transport: http() });
-  const publicClient = createPublicClient({ chain: base, transport: http() });
-  return { account, walletClient, publicClient };
+  const signer = privateKeyToAccount(normalized as `0x${string}`);
+  const cdp = new CdpClient({
+    apiKeyId: process.env.CDP_API_KEY_ID,
+    apiKeySecret: process.env.CDP_API_KEY_SECRET,
+  });
+  const smartAccount = await cdp.evm.getOrCreateSmartAccount({
+    name: "allign-agent",
+    owner: signer,
+    enableSpendPermissions: true,
+  });
+  const networkAccount = await smartAccount.useNetwork("base");
+  return { smartAccount, networkAccount };
 }
 
 export async function POST(req: NextRequest) {
-  // Protect endpoint — Vercel cron sends this header automatically
   const auth = req.headers.get("authorization");
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -27,8 +36,8 @@ export async function POST(req: NextRequest) {
 
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
+  const runAt = new Date().toISOString();
 
-  // Fetch all active, non-expired configs
   const { data: configs } = await supabase
     .from("settings")
     .select("*")
@@ -39,86 +48,129 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, processed: 0, message: "No active configs" });
   }
 
-  // Run signal engine once — shared across all users
+  logSeparator("AGENT RUN START");
   const signals = await scoreAllStocks();
-
-  const { prepareSpendCallData } = await import("@base-org/account/spend-permission");
-  const { account, walletClient, publicClient } = getServerWallet();
-
+  const { smartAccount, networkAccount } = await getAgentSmartAccount();
   const results = [];
 
   for (const config of configs) {
     try {
       const { buys } = getTradeDecisions(signals, config.daily_budget_usdc, config.daily_budget_usdc);
+
       if (!buys.length) {
+        log(`[execute] no buy candidates for ${config.wallet_address} — no strong signals`);
+        await supabase.from("trades").insert({
+          wallet_address: config.wallet_address,
+          run_at: runAt,
+          event_type: "skip",
+          message: "No strong signals this run",
+        });
         results.push({ wallet: config.wallet_address, status: "skipped", reason: "no strong signals" });
         continue;
       }
 
-      const topBuy = buys[0];
-      const amountUsdc = Math.max((topBuy.kelly ?? 0.1) * config.daily_budget_usdc, 0.30);
-      const amountMicro = BigInt(Math.round(amountUsdc * 1_000_000));
+      log(`[execute] ${buys.length} buy candidates: ${buys.map(b => b.stock.ticker).join(", ")}`);
 
-      const tokenTicker = topBuy.stock.tokenTicker;
+      // Try candidates in order until one succeeds
+      let traded = false;
+      for (const candidate of buys) {
+        const tokenTicker = candidate.stock.tokenTicker;
+        const amountUsdc = Math.max((candidate.kelly ?? 0.1) * config.daily_budget_usdc, 0.30);
+        const compositeScore = Math.round((candidate.composite ?? 0) * 100);
 
-      // 1. Pull USDC from user wallet to server wallet via spend permission
-      const spendCalls = await prepareSpendCallData(
-        config.spend_permission_json,
-        amountMicro,
-      );
+        log(`[execute] trying ${tokenTicker} — composite=${compositeScore}, $${amountUsdc.toFixed(2)} USDC`);
 
-      for (const call of spendCalls) {
-        const hash = await walletClient.sendTransaction({
-          to: call.to as `0x${string}`,
-          data: call.data as `0x${string}`,
-          value: call.value ? BigInt(call.value) : 0n,
-        });
-        await publicClient.waitForTransactionReceipt({ hash });
-      }
+        let quote;
+        try {
+          quote = await fetchStockQuote({
+            sym: tokenTicker,
+            side: "buy",
+            amount: amountUsdc.toFixed(6),
+            taker: smartAccount.address,
+            slippageBps: 100,
+          });
+        } catch (e: any) {
+          log(`[execute] quote failed for ${tokenTicker}: ${e?.message} — trying next`);
+          continue;
+        }
 
-      // 2. Get quote from Ozmium (server wallet is the taker)
-      const quote = await fetchStockQuote({
-        sym: tokenTicker,
-        side: "buy",
-        amount: amountUsdc.toFixed(6),
-        taker: account.address,
-        slippageBps: 100,
-      });
+        const poolLiquidity = quote.advisory?.pool?.usdc ?? 0;
+        if (poolLiquidity < MIN_POOL_LIQUIDITY_USDC) {
+          log(`[execute] ${tokenTicker} pool too shallow ($${poolLiquidity} USDC, need $${MIN_POOL_LIQUIDITY_USDC}) — trying next`);
+          continue;
+        }
 
-      if (Math.abs(quote.advisory.vsFeedPct) > 2) {
-        results.push({ wallet: config.wallet_address, status: "skipped", reason: "price deviation too high" });
-        continue;
-      }
+        if (Math.abs(quote.advisory.vsFeedPct) > 2) {
+          log(`[execute] ${tokenTicker} price deviation ${quote.advisory.vsFeedPct.toFixed(2)}% — trying next`);
+          continue;
+        }
 
-      // 3. Execute swap steps
-      const txHashes: string[] = [];
-      for (const step of quote.steps) {
-        const hash = await walletClient.sendTransaction({
+        log(`[execute] ${tokenTicker} quote OK — pool $${poolLiquidity} USDC, deviation ${quote.advisory.vsFeedPct.toFixed(3)}%`);
+
+        const amountMicro = BigInt(Math.round(amountUsdc * 1_000_000));
+        const { prepareSpendCallData } = await import("@base-org/account/spend-permission");
+        const spendCalls = await prepareSpendCallData(config.spend_permission_json, amountMicro);
+
+        // Bundle spend + swap into one atomic user op — if swap fails, USDC is not pulled
+        const swapCalls = quote.steps.map((step: any) => ({
           to: step.to,
           data: step.data,
           value: BigInt(step.value),
+        }));
+
+        const atomicOp = await networkAccount.sendUserOperation({
+          calls: [...spendCalls, ...swapCalls],
         });
-        await publicClient.waitForTransactionReceipt({ hash });
-        txHashes.push(hash);
+        const atomicReceipt = await networkAccount.waitForUserOperation({ userOpHash: atomicOp.userOpHash });
+
+        if (atomicReceipt.status !== "complete") {
+          log(`[execute] atomic op failed for ${tokenTicker}`);
+          throw new Error("Atomic spend+swap user op failed");
+        }
+
+        const txHashes = [atomicReceipt.transactionHash];
+
+        const sharesReceived = Number(quote.advisory.amountOut) / 1e8;
+        const finalTx = txHashes[txHashes.length - 1];
+
+        await supabase.from("trades").insert({
+          wallet_address: config.wallet_address,
+          run_at: runAt,
+          event_type: "trade",
+          message: `Bought ${sharesReceived.toFixed(6)} ${tokenTicker} for $${amountUsdc.toFixed(2)}`,
+          ticker: tokenTicker,
+          side: "buy",
+          amount_usdc: amountUsdc,
+          shares: sharesReceived,
+          price: quote.advisory.pricePerShare,
+          tx_hash: finalTx,
+          signal_score: compositeScore,
+        });
+
+        results.push({ wallet: config.wallet_address, ticker: tokenTicker, status: "ok", tx: finalTx });
+        traded = true;
+        break;
       }
 
-      // 4. Log trade to Supabase
-      const sharesReceived = Number(quote.advisory.amountOut) / 1e8;
+      if (!traded) {
+        await supabase.from("trades").insert({
+          wallet_address: config.wallet_address,
+          run_at: runAt,
+          event_type: "skip",
+          message: "All candidates failed — no liquid pool or price deviation too high",
+        });
+        results.push({ wallet: config.wallet_address, status: "skipped", reason: "all candidates failed" });
+      }
+    } catch (e: any) {
+      const msg = e?.message ?? "Unknown error";
+      console.error(`Agent execute error for ${config.wallet_address}:`, msg);
       await supabase.from("trades").insert({
         wallet_address: config.wallet_address,
-        ticker: tokenTicker,
-        side: "buy",
-        amount_usdc: amountUsdc,
-        shares: sharesReceived,
-        price: quote.advisory.pricePerShare,
-        tx_hash: txHashes[txHashes.length - 1],
-        signal_score: Math.round((topBuy.composite ?? 0) * 100),
+        run_at: runAt,
+        event_type: "error",
+        message: msg,
       });
-
-      results.push({ wallet: config.wallet_address, ticker: tokenTicker, status: "ok", tx: txHashes.at(-1) });
-    } catch (e: any) {
-      console.error(`Agent execute error for ${config.wallet_address}:`, e?.message);
-      results.push({ wallet: config.wallet_address, status: "error", error: e?.message });
+      results.push({ wallet: config.wallet_address, status: "error", error: msg });
     }
   }
 

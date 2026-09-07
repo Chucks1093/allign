@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount, useSendCalls, useCallsStatus } from "wagmi";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 import { X, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
@@ -25,7 +25,9 @@ interface Props {
 
 export default function BuyModal({ stock, price, onClose, initialTab = "Buy", initialAmount }: Props) {
   const { address } = useAccount();
-  const { data: walletClient } = useWalletClient();
+  const { sendCallsAsync } = useSendCalls();
+  const [callsId, setCallsId] = useState<string | undefined>(undefined);
+  const { data: callsStatus } = useCallsStatus({ id: callsId ?? "", query: { enabled: !!callsId } });
   const [tab, setTab] = useState<Tab>(initialTab);
   const [input, setInput] = useState(initialAmount ?? "");
   const [quote, setQuote] = useState<OzmiumQuoteResult | null>(null);
@@ -92,26 +94,19 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
   }, [input, fetchQuote]);
 
   async function handleTrade() {
-    if (!address || !walletClient || !quote) return;
+    if (!address || !quote) return;
     setStatus("signing");
     setErrorMsg(null);
     setTxHashes([]);
     try {
-      const publicClient = createPublicClient({ chain: base, transport: http() });
-
-      const hashes: string[] = [];
-      for (const step of quote.steps) {
-        const hash = await walletClient.sendTransaction({
+      const result = await sendCallsAsync({
+        calls: quote.steps.map((step) => ({
           to: step.to,
           data: step.data,
           value: BigInt(step.value),
-          account: address,
-          chain: base,
-        });
-        await publicClient.waitForTransactionReceipt({ hash });
-        hashes.push(hash);
-        setTxHashes([...hashes]);
-      }
+        })),
+      });
+      setCallsId(result.id);
       setStatus("success");
     } catch (e: any) {
       setStatus("error");
@@ -127,7 +122,7 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
   const insufficientBalance = isBuy ? parsedInput > usdcBalance : parsedInput > tokenBalance;
 
   const canTrade =
-    !!address && !!walletClient && !!quote && !quoting && !belowMinimum &&
+    !!address && !!quote && !quoting && !belowMinimum &&
     !insufficientBalance && !vsFeedBad && status === "idle";
 
   const receiveDisplay = () => {
@@ -263,12 +258,12 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3 py-2.5 mb-3">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
-              <p className="text-emerald-400 text-xs font-medium">{isBuy ? "Buy" : "Sell"} successful!</p>
+              <p className="text-emerald-400 text-xs font-medium">{isBuy ? "Buy" : "Sell"} submitted!</p>
             </div>
-            {txHashes.map((h, i) => (
-              <a key={h} href={`https://basescan.org/tx/${h}`} target="_blank" rel="noopener noreferrer"
+            {callsStatus?.receipts?.map((r, i) => (
+              <a key={i} href={`https://basescan.org/tx/${r.transactionHash}`} target="_blank" rel="noopener noreferrer"
                 className="block text-xs text-emerald-400/60 hover:text-emerald-400 underline mt-0.5">
-                Step {i + 1}: {h.slice(0, 10)}… →
+                View on Basescan →
               </a>
             ))}
           </div>

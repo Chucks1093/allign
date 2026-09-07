@@ -1,9 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import makeBlockie from "ethereum-blockies-base64";
 import { useAccount, useDisconnect } from "wagmi";
 import { useConnectBaseWallet } from "@/hooks/useConnectBaseWallet";
+import { createPublicClient, http, erc20Abi } from "viem";
+import { base } from "viem/chains";
+
+const USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
+const publicClient = createPublicClient({ chain: base, transport: http() });
+
+function useUsdcBalance(address?: string) {
+  const [balance, setBalance] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!address) return;
+    publicClient
+      .readContract({ address: USDC, abi: erc20Abi, functionName: "balanceOf", args: [address as `0x${string}`] })
+      .then((raw) => setBalance((Number(raw) / 1e6).toFixed(2)))
+      .catch(() => setBalance(null));
+  }, [address]);
+
+  return balance;
+}
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,6 +53,7 @@ export default function WalletDropdown() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { connect, isConnecting } = useConnectBaseWallet();
+  const usdcBalance = useUsdcBalance(address);
 
   if (!isConnected || !address) {
     return (
@@ -71,7 +91,9 @@ export default function WalletDropdown() {
             <Blockie address={address} size={40} />
             <div>
               <p className="text-sm font-semibold text-white">{display}</p>
-              <p className="text-xs text-white/50 mt-0.5">Base Mainnet</p>
+              <p className="text-xs text-white/50 mt-0.5">
+                {usdcBalance !== null ? `$${usdcBalance} USDC` : "Base Mainnet"}
+              </p>
             </div>
           </div>
           <button

@@ -1,4 +1,5 @@
 import { STOCKS } from "@/lib/stocks/tokens";
+import { log, logSeparator } from "./logger";
 import { scoreMomentum } from "./momentum";
 import { scorePolymarket } from "./polymarket";
 import { scoreSentiment } from "./sentiment";
@@ -29,6 +30,7 @@ export async function scoreAllStocks(): Promise<StockSignal[]> {
   const momentumMap = new Map(momentumResults.map((r) => [r.ticker, r]));
   const polymarketMap = new Map(polymarketResults.map((r) => [r.ticker, r]));
   const sentimentMap = new Map(sentimentResults.map((r) => [r.ticker, r]));
+  // Pool results use Ozmium sym (e.g. "AAPLc") — match by tokenTicker
   const poolMap = new Map(poolResults.map((r) => [r.ticker, r]));
   const relStrengthMap = relativeStrengthScores(momentumResults);
 
@@ -38,7 +40,7 @@ export async function scoreAllStocks(): Promise<StockSignal[]> {
     const momentum = momentumMap.get(stock.ticker);
     const polymarket = polymarketMap.get(stock.ticker);
     const sentiment = sentimentMap.get(stock.ticker);
-    const pool = poolMap.get(stock.ticker);
+    const pool = poolMap.get(stock.tokenTicker);
     const relStrength = relStrengthMap.get(stock.ticker) ?? 0.5;
 
     const scores: SignalScores = {
@@ -59,8 +61,18 @@ export async function scoreAllStocks(): Promise<StockSignal[]> {
     signals.push(signal);
   }
 
-  // Sort by composite score descending
-  return signals.sort((a, b) => b.composite - a.composite);
+  signals.sort((a, b) => b.composite - a.composite);
+  logSeparator("SIGNAL RESULTS");
+  log("[signals] final scores:", signals.map((s) => ({
+    ticker: s.stock.ticker,
+    signal: s.signal,
+    composite: +s.composite.toFixed(3),
+    momentum: +s.scores.momentum.toFixed(3),
+    polymarket: +s.scores.polymarket.toFixed(3),
+    sentiment: +s.scores.sentiment.toFixed(3),
+    pool: +s.scores.poolHealth.toFixed(3),
+  })));
+  return signals;
 }
 
 export function getTradeDecisions(

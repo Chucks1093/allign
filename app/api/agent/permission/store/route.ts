@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const periodSeconds = periodDays * 86400;
     const now = Math.floor(Date.now() / 1000);
 
-    await supabase.from("settings").upsert(
+    const { error } = await supabase.from("settings").upsert(
       {
         wallet_address: walletAddress.toLowerCase(),
         daily_budget_usdc: budgetUsdc,
@@ -39,6 +39,11 @@ export async function POST(req: NextRequest) {
       },
       { onConflict: "wallet_address" }
     );
+
+    if (error) {
+      console.error("Supabase upsert error:", error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {

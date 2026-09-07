@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAccount } from "wagmi";
 import {
   Bot, Zap, ZapOff, Loader2, Clock, TrendingUp,
-  TrendingDown, AlertCircle, ExternalLink, RefreshCw,
+  AlertCircle, ExternalLink, RefreshCw, Minus,
 } from "lucide-react";
 
 interface AgentConfig {
@@ -12,19 +12,18 @@ interface AgentConfig {
   daily_budget_usdc: number;
   is_active: boolean;
   permission_expires_at: string;
-  updated_at: string;
   spend_permission_json?: object;
 }
 
-interface AgentTrade {
+interface ActivityEntry {
   id: string;
-  ticker: string;
-  side: "buy" | "sell";
-  amount_usdc: number;
-  shares: number;
-  price: number;
-  tx_hash: string;
-  signal_score: number;
+  event_type: "trade" | "skip" | "error";
+  message: string;
+  ticker?: string;
+  amount_usdc?: number;
+  shares?: number;
+  tx_hash?: string;
+  signal_score?: number;
   created_at: string;
 }
 
@@ -45,7 +44,7 @@ function timeAgo(iso: string) {
 export default function AgentView() {
   const { address } = useAccount();
   const [config, setConfig] = useState<AgentConfig | null>(null);
-  const [trades, setTrades] = useState<AgentTrade[]>([]);
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
 
@@ -59,7 +58,7 @@ export default function AgentView() {
       const { config } = await configRes.json();
       const { trades } = await tradesRes.json();
       setConfig(config);
-      setTrades(trades ?? []);
+      setActivity(trades ?? []);
     } catch {
       // silent
     } finally {
@@ -119,10 +118,7 @@ export default function AgentView() {
             Go to the chat and say "activate the agent" to get started
           </p>
         </div>
-        <a
-          href="/"
-          className="mt-2 px-5 py-2.5 rounded-xl bg-[#a8ff78] text-black text-sm font-semibold hover:bg-[#96f060] transition-colors"
-        >
+        <a href="/" className="mt-2 px-5 py-2.5 rounded-xl bg-[#a8ff78] text-black text-sm font-semibold hover:bg-[#96f060] transition-colors">
           Open Chat
         </a>
       </div>
@@ -133,8 +129,7 @@ export default function AgentView() {
   const expiresIn = Math.max(0, Math.ceil(
     (new Date(config.permission_expires_at).getTime() - Date.now()) / 86400000
   ));
-
-  const totalSpent = trades.reduce((sum, t) => sum + (t.side === "buy" ? t.amount_usdc : 0), 0);
+  const totalSpent = activity.filter((a) => a.event_type === "trade").reduce((s, t) => s + (t.amount_usdc ?? 0), 0);
 
   return (
     <div className="px-6 pb-10 space-y-4">
@@ -198,56 +193,60 @@ export default function AgentView() {
         )}
       </div>
 
-      {/* Trade history */}
+      {/* Activity */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Agent Trades</p>
+          <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Activity</p>
           <button onClick={fetchData} className="p-1 rounded-lg text-white/30 hover:text-white transition-colors cursor-pointer">
             <RefreshCw size={13} />
           </button>
         </div>
 
-        {trades.length === 0 ? (
+        {activity.length === 0 ? (
           <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl px-5 py-10 flex flex-col items-center gap-2 text-center">
             <Clock size={28} className="text-white/20" />
-            <p className="text-white/40 text-sm">No trades yet</p>
-            <p className="text-white/25 text-xs">The agent runs every 4 hours and trades when signals are strong</p>
+            <p className="text-white/40 text-sm">No activity yet</p>
+            <p className="text-white/25 text-xs">The agent runs every 4 hours</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {trades.map((trade) => (
-              <div key={trade.id} className="bg-[#1a1a1a] border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${trade.side === "buy" ? "bg-emerald-500/15" : "bg-red-500/15"}`}>
-                  {trade.side === "buy"
-                    ? <TrendingUp size={14} className="text-emerald-400" />
-                    : <TrendingDown size={14} className="text-red-400" />
-                  }
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-white text-sm font-semibold">{trade.side === "buy" ? "Bought" : "Sold"} {trade.ticker}</p>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-md font-medium ${trade.side === "buy" ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
-                      {trade.side.toUpperCase()}
-                    </span>
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl divide-y divide-white/5 overflow-hidden">
+            {activity.map((entry) => (
+              <div key={entry.id} className="px-4 py-3.5 flex items-center gap-3">
+                {entry.event_type === "trade" ? (
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+                    <TrendingUp size={14} className="text-emerald-400" />
                   </div>
-                  <p className="text-white/40 text-xs mt-0.5">
-                    {fmt(trade.amount_usdc)} · {trade.shares?.toFixed(6)} shares · signal {trade.signal_score?.toFixed(0)}
+                ) : entry.event_type === "error" ? (
+                  <div className="w-8 h-8 rounded-full bg-red-500/15 flex items-center justify-center shrink-0">
+                    <AlertCircle size={14} className="text-red-400" />
+                  </div>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                    <Minus size={14} className="text-white/30" />
+                  </div>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium ${
+                    entry.event_type === "trade" ? "text-white" :
+                    entry.event_type === "error" ? "text-red-400" : "text-white/40"
+                  }`}>
+                    {entry.message}
                   </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-white/40 text-xs">{timeAgo(trade.created_at)}</p>
-                  {trade.tx_hash && (
+                  {entry.event_type === "trade" && entry.tx_hash && (
                     <a
-                      href={`https://basescan.org/tx/${trade.tx_hash}`}
+                      href={`https://basescan.org/tx/${entry.tx_hash}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 mt-0.5 justify-end"
+                      className="flex items-center gap-1 text-xs text-white/25 hover:text-white/50 mt-0.5"
                     >
                       <ExternalLink size={10} />
-                      tx
+                      basescan
                     </a>
                   )}
                 </div>
+
+                <p className="text-xs text-white/25 shrink-0">{timeAgo(entry.created_at)}</p>
               </div>
             ))}
           </div>
