@@ -2,8 +2,19 @@
 
 import { useEffect, useRef } from "react";
 import { UIMessage } from "@ai-sdk/react";
-import { Plus, Brain, Mic, ArrowUp, TrendingUp, TrendingDown, AlertCircle, Loader2, Bot } from "lucide-react";
+import { TrendingUp, TrendingDown, AlertCircle, Loader2, Bot, Send, Plus } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { MarkdownMessage } from "@/components/chat/MarkdownMessage";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+const QUICK_COMMANDS = [
+  "Buy $5 of NVIDIA",
+  "Buy $1 of Tesla",
+  "What's Apple's price?",
+  "Show my portfolio",
+  "Activate AI agent",
+  "What stocks are trending?",
+];
 
 interface PortfolioHolding {
   ticker: string;
@@ -330,7 +341,7 @@ export default function ChatMessages({
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="px-8 py-8 space-y-6 max-w-3xl mx-auto">
           {messages.map((msg) => {
             if (msg.role === "user") {
@@ -340,7 +351,7 @@ export default function ChatMessages({
                 .join("");
               return (
                 <div key={msg.id} className="flex justify-end">
-                  <div className="max-w-[70%] bg-[#2f2f2f] text-white rounded-2xl rounded-br-sm px-4 py-3 text-sm leading-relaxed">
+                  <div className="max-w-[70%] bg-[#2f2f2f] text-white rounded-2xl rounded-br-sm px-4 py-3 text-base font-medium leading-relaxed">
                     {text}
                   </div>
                 </div>
@@ -357,9 +368,7 @@ export default function ChatMessages({
                     return (
                       <div key={i} className="flex flex-col gap-3 max-w-[80%]">
                         {displayText && (
-                          <p className="text-white text-sm leading-relaxed whitespace-pre-wrap">
-                            {displayText}
-                          </p>
+                          <MarkdownMessage content={displayText} />
                         )}
                         {agentTag && (
                           <AgentActivationCard
@@ -403,37 +412,40 @@ export default function ChatMessages({
 
       {/* Persistent input bar */}
       <div className="px-4 pb-6 pt-2 flex justify-center">
-        <div className="w-full max-w-2xl bg-[#1a1a1a] rounded-2xl px-4 py-3 flex items-center gap-3">
-          <button type="button" className="text-white/50 hover:text-white transition-colors shrink-0">
-            <Plus size={20} />
-          </button>
-
+        <div className="w-full max-w-2xl bg-[#272727] rounded-full pl-2 pr-2 py-2 flex items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center justify-center shrink-0 cursor-pointer text-white/50 hover:text-white transition-colors pl-2">
+              <Plus size={22} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-[#1a1a1a] border border-white/10 rounded-xl w-56">
+              {QUICK_COMMANDS.map((cmd) => (
+                <DropdownMenuItem
+                  key={cmd}
+                  onClick={() => onInputChange(cmd)}
+                  className="text-white/70 hover:text-white cursor-pointer text-sm py-2.5"
+                >
+                  {cmd}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <input
             type="text"
             value={input}
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onSend()}
-            placeholder="Ask anything"
-            className="flex-1 bg-transparent text-white placeholder:text-white/30 text-sm outline-none"
+            placeholder="Ask me to buy NVIDIA, check your portfolio..."
+            className="flex-1 bg-transparent text-white placeholder:text-white/30 text-base font-medium outline-none"
           />
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button type="button" className="flex items-center gap-1.5 text-white/50 hover:text-white text-xs font-medium transition-colors px-1">
-              <Brain size={15} />
-              <span>Think</span>
-            </button>
-            <button type="button" className="text-white/50 hover:text-white transition-colors">
-              <Mic size={18} />
-            </button>
-            <button
+          <button
               type="button"
               onClick={onSend}
               disabled={!input.trim() || isLoading}
-              className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+              className="w-10 h-10 rounded-full bg-white/80 hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0"
             >
-              <ArrowUp size={16} className="text-white" />
+              <Send size={14} className="text-black" />
             </button>
-          </div>
         </div>
       </div>
     </div>

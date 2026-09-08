@@ -1,17 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { useStockPrices } from "@/hooks/useStockPrices";
 import StockCard from "@/components/stocks/StockCard";
-import BuyModal from "@/components/trade/BuyModal";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { RefreshCw } from "lucide-react";
-import type { StockPrice } from "@/lib/stocks/prices";
 
 export default function ExplorePage() {
   const { stocks, loading, refreshing, error, refresh } = useStockPrices();
-  const [selected, setSelected] = useState<StockPrice | null>(null);
 
   return (
+    <ScrollArea className="h-full">
     <div className="bg-[#0d0d0d] px-8 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -31,7 +29,7 @@ export default function ExplorePage() {
       {loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 13 }).map((_, i) => (
-            <div key={i} className="bg-[#1a1a1a] rounded-2xl p-4 h-40 animate-pulse" />
+            <div key={i} className="bg-[#1a1a1a] rounded-2xl p-4 h-48 animate-pulse" />
           ))}
         </div>
       )}
@@ -39,31 +37,18 @@ export default function ExplorePage() {
       {!loading && error && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <p className="text-white/50 text-sm">Could not load prices from Base.</p>
-          <button onClick={refresh} className="mt-4 text-blue-400 hover:text-blue-300 text-sm cursor-pointer">
-            Try again
-          </button>
+          <button onClick={refresh} className="mt-4 text-blue-400 hover:text-blue-300 text-sm cursor-pointer">Try again</button>
         </div>
       )}
 
       {!loading && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {stocks.map((data) => (
-            <StockCard
-              key={data.stock.tokenTicker}
-              data={data}
-              onBuy={() => setSelected(data)}
-            />
+            <StockCard key={data.stock.tokenTicker} data={data} />
           ))}
         </div>
       )}
-
-      {selected && (
-        <BuyModal
-          stock={selected.stock}
-          price={selected.price}
-          onClose={() => setSelected(null)}
-        />
-      )}
     </div>
+    </ScrollArea>
   );
 }

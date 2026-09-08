@@ -1,63 +1,99 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { AreaChart, Area, YAxis } from "recharts";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { type StockPrice } from "@/lib/stocks/prices";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface StockCardProps {
   data: StockPrice;
-  onBuy?: (ticker: string) => void;
 }
 
-export default function StockCard({ data, onBuy }: StockCardProps) {
+export default function StockCard({ data }: StockCardProps) {
   const { stock, price, error, changePercent } = data;
-  const hasChange = changePercent !== undefined;
   const isUp = (changePercent ?? 0) >= 0;
+  const router = useRouter();
+  const [points, setPoints] = useState<{ t: number; price: number }[]>([]);
+
+  useEffect(() => {
+    fetch(`/api/history?tokenTicker=${stock.tokenTicker}&range=1M`)
+      .then((r) => r.json())
+      .then((d) => { if (d.points?.length) setPoints(d.points); })
+      .catch(() => {});
+  }, [stock.tokenTicker]);
+
+  const color = isUp ? "#22c55e" : "#ef4444";
+  const chartConfig: ChartConfig = { price: { label: "Price", color } };
+
+  const prices = points.map((p) => p.price);
+  const minP = prices.length ? Math.min(...prices) : 0;
+  const maxP = prices.length ? Math.max(...prices) : 0;
+  const range = maxP - minP;
+  const pad = range > 0 ? range * 0.05 : minP * 0.002;
 
   return (
-    <div className="bg-[#1a1a1a] rounded-2xl p-4 flex flex-col gap-3 hover:bg-[#222] transition-colors">
+    <div
+      onClick={() => router.push(`/app/explore/${stock.tokenTicker}`)}
+      className="bg-[#1a1a1a] rounded-2xl p-4 flex flex-col gap-3 cursor-pointer hover:bg-[#222] transition-colors overflow-hidden"
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-[#2a2a2a] flex items-center justify-center text-lg">
+          <div className="w-9 h-9 rounded-full bg-[#2a2a2a] flex items-center justify-center text-lg shrink-0">
             {stock.logo}
           </div>
           <div>
             <p className="text-white font-semibold text-sm leading-tight">{stock.name}</p>
-            <p className="text-white/40 text-xs">{stock.tokenTicker}</p>
+            <p className="text-white/40 text-xs">{stock.ticker}</p>
           </div>
         </div>
-
-        {hasChange ? (
-          <div className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
-            isUp ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"
-          }`}>
+        {changePercent !== undefined ? (
+          <div className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${isUp ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
             {isUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
             {isUp ? "+" : ""}{changePercent}%
           </div>
         ) : (
-          <div className="text-xs text-white/20 px-2 py-0.5">—</div>
+          <div className="text-xs text-white/20">—</div>
         )}
       </div>
 
       {/* Price */}
       <div>
-        {error ? (
-          <p className="text-white/30 text-sm">Price unavailable</p>
-        ) : (
-          <p className="text-white font-semibold text-xl">
-            ${price > 0 ? price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}
-          </p>
-        )}
+        <p className="text-white font-bold text-xl">
+          {error ? "—" : `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        </p>
         <p className="text-white/30 text-xs mt-0.5">per token · Base</p>
       </div>
 
-      {/* Buy button */}
-      <button
-        onClick={() => onBuy?.(stock.tokenTicker)}
-        className="w-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium py-2 rounded-xl transition-colors cursor-pointer"
-      >
-        Buy {stock.tokenTicker}
-      </button>
+      {/* Sparkline */}
+      <div className="-mx-4 -mb-4">
+        {points.length > 1 ? (
+          <ChartContainer config={chartConfig} className="h-20 w-full">
+            <AreaChart data={points} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={`g-${stock.ticker}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+                  <stop offset="95%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <YAxis domain={[minP - pad, maxP + pad]} hide />
+              <Area
+                type="monotone"
+                dataKey="price"
+                stroke={color}
+                strokeWidth={1.5}
+                fill={`url(#g-${stock.ticker})`}
+                dot={false}
+                isAnimationActive={false}
+              />
+            </AreaChart>
+          </ChartContainer>
+        ) : (
+          <div className="h-20 bg-white/[0.03] animate-pulse" />
+        )}
+      </div>
     </div>
   );
 }

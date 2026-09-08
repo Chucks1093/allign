@@ -1,11 +1,17 @@
 export interface Stock {
   name: string;
-  ticker: string;       // e.g. "NVDA"
-  tokenTicker: string;  // e.g. "NVDAc"
+  ticker: string;
+  tokenTicker: string;
   contract: `0x${string}`;
   feedAddress: `0x${string}`;
-  logo: string;         // emoji fallback for now
-  tradable?: boolean;   // false = feed exists but Ozmium trading not yet live
+  logo: string;
+  tradable?: boolean;
+  description?: string;
+  sector?: string;
+  marketCap?: string;
+  exchange?: string;
+  employees?: string;
+  website?: string;
 }
 
 export const STOCKS: Stock[] = [
@@ -16,6 +22,12 @@ export const STOCKS: Stock[] = [
     contract: "0xb20000000000000000000078ee7ce2fE4908108C",
     feedAddress: "0x04689a41629776563E6822F76f2e57D148d28513",
     logo: "🟢",
+    description: "NVIDIA is the world leader in GPU design, powering AI, data centers, gaming, and autonomous vehicles. Its CUDA platform and H100/Blackwell chips dominate the AI training and inference market.",
+    sector: "Technology · Semiconductors",
+    marketCap: "$3.3T",
+    exchange: "NASDAQ",
+    employees: "36,000",
+    website: "nvidia.com",
   },
   {
     name: "Apple",
@@ -24,6 +36,12 @@ export const STOCKS: Stock[] = [
     contract: "0xb200000000000000000000C2e324d24d7eEcd1fb",
     feedAddress: "0x787f13dEa48Db0897CbCDD985de77809D837F988",
     logo: "🍎",
+    description: "Apple designs and sells the iPhone, Mac, iPad, and Apple Watch, alongside a growing services business including the App Store, iCloud, Apple TV+, and Apple Pay.",
+    sector: "Technology · Consumer Electronics",
+    marketCap: "$3.4T",
+    exchange: "NASDAQ",
+    employees: "164,000",
+    website: "apple.com",
   },
   {
     name: "Meta",
@@ -32,6 +50,12 @@ export const STOCKS: Stock[] = [
     contract: "0xb2000000000000000000008bC8786B856E61707C",
     feedAddress: "0x6526aE6797A76123638b863AeE4dD27Ba4E4b27D",
     logo: "🔵",
+    description: "Meta owns Facebook, Instagram, WhatsApp, and Messenger — reaching over 3 billion people daily. The company is also investing heavily in AI and the metaverse through its Reality Labs division.",
+    sector: "Technology · Social Media",
+    marketCap: "$1.5T",
+    exchange: "NASDAQ",
+    employees: "72,000",
+    website: "meta.com",
   },
   {
     name: "Alphabet",
@@ -40,6 +64,12 @@ export const STOCKS: Stock[] = [
     contract: "0xb2000000000000000000002D0BA3164cc74f58B7",
     feedAddress: "0x5bF49E0ffA937CE2FfF033c739aD7C634c4D34F2",
     logo: "🔴",
+    description: "Alphabet is the parent company of Google, the world's largest search engine. Its portfolio spans Google Cloud, YouTube, Android, DeepMind, and Waymo self-driving cars.",
+    sector: "Technology · Internet Services",
+    marketCap: "$2.1T",
+    exchange: "NASDAQ",
+    employees: "182,000",
+    website: "abc.xyz",
   },
   {
     name: "Amazon",
@@ -48,6 +78,12 @@ export const STOCKS: Stock[] = [
     contract: "0xb200000000000000000000d9192b6B456483C2E8",
     feedAddress: "0x06A8E4b3aBB3B7543d8396FB2B763d22820cB295",
     logo: "📦",
+    description: "Amazon is the world's largest e-commerce platform and cloud provider through AWS. It also operates Prime Video, Alexa, Whole Foods, and a vast global logistics network.",
+    sector: "Consumer Discretionary · E-Commerce",
+    marketCap: "$2.3T",
+    exchange: "NASDAQ",
+    employees: "1,580,000",
+    website: "amazon.com",
   },
   {
     name: "Microsoft",
@@ -56,6 +92,12 @@ export const STOCKS: Stock[] = [
     contract: "0xB200000000000000000000Ab99cFa739E253872B",
     feedAddress: "0xeB10A6c9aa7E537aEd766C08c35Dae35B321b18c",
     logo: "🪟",
+    description: "Microsoft develops Windows, Office 365, and Azure — the world's second-largest cloud platform. Its $10B investment in OpenAI positions it at the center of the enterprise AI wave.",
+    sector: "Technology · Software",
+    marketCap: "$3.1T",
+    exchange: "NASDAQ",
+    employees: "228,000",
+    website: "microsoft.com",
   },
   {
     name: "Tesla",
@@ -64,6 +106,12 @@ export const STOCKS: Stock[] = [
     contract: "0xb2000000000000000000001e800a7f5189430cD0",
     feedAddress: "0xFaf869185383a24F8cb00e27BdA6b63B9905DCb4",
     logo: "⚡",
+    description: "Tesla manufactures electric vehicles, energy storage systems, and solar products. Its Full Self-Driving software and Optimus humanoid robot represent major bets on autonomous AI.",
+    sector: "Consumer Discretionary · Electric Vehicles",
+    marketCap: "$800B",
+    exchange: "NASDAQ",
+    employees: "140,000",
+    website: "tesla.com",
   },
   {
     name: "Coinbase",
@@ -73,6 +121,12 @@ export const STOCKS: Stock[] = [
     feedAddress: "0x408e44f504A7371a345F03a73dDC96A4b48e8aa7",
     logo: "🔷",
     tradable: false,
+    description: "Coinbase is the largest regulated crypto exchange in the US, offering trading, custody, and staking for retail and institutional clients. It also develops Base, an Ethereum Layer 2 network.",
+    sector: "Financials · Cryptocurrency",
+    marketCap: "$55B",
+    exchange: "NASDAQ",
+    employees: "3,500",
+    website: "coinbase.com",
   },
   {
     name: "MicroStrategy",
@@ -81,6 +135,12 @@ export const STOCKS: Stock[] = [
     contract: "0xb2000000000000000000004884b426556b92883d",
     feedAddress: "0xB3cE282CD188b35DA0E38D8Bc7d58e33173D202a",
     logo: "🟠",
+    description: "MicroStrategy is a business intelligence firm turned Bitcoin holding company. It holds over 500,000 BTC — the largest corporate Bitcoin reserve in the world — funded through equity and debt offerings.",
+    sector: "Technology · Business Intelligence",
+    marketCap: "$90B",
+    exchange: "NASDAQ",
+    employees: "1,850",
+    website: "strategy.com",
   },
   {
     name: "Intel",
@@ -90,6 +150,12 @@ export const STOCKS: Stock[] = [
     feedAddress: "0xAB657C39bac0D5886250D70849e2E3E008F2EECB",
     logo: "💙",
     tradable: false,
+    description: "Intel designs and manufactures CPUs, GPUs, and networking chips for data centers and PCs. The company is rebuilding its foundry business to compete with TSMC and Samsung.",
+    sector: "Technology · Semiconductors",
+    marketCap: "$90B",
+    exchange: "NASDAQ",
+    employees: "108,900",
+    website: "intel.com",
   },
   {
     name: "SpaceX",
@@ -98,6 +164,12 @@ export const STOCKS: Stock[] = [
     contract: "0xb2000000000000000000007b9fcbd005511aCBd5",
     feedAddress: "0x6A634B235903C4ad6376892180d6fF8612e3Fa68",
     logo: "🚀",
+    description: "SpaceX builds reusable rockets and spacecraft, operating the Falcon 9, Falcon Heavy, and Starship. Its Starlink division provides satellite broadband to over 4 million customers worldwide.",
+    sector: "Aerospace · Defense",
+    marketCap: "$350B",
+    exchange: "Private",
+    employees: "13,000",
+    website: "spacex.com",
   },
   {
     name: "Circle",
@@ -107,6 +179,12 @@ export const STOCKS: Stock[] = [
     feedAddress: "0x0231cF2635D1E17bB5c2462cc7504Ba1fBd61f33",
     logo: "⭕",
     tradable: false,
+    description: "Circle is the issuer of USDC, one of the world's largest dollar-backed stablecoins with over $60B in circulation. The company provides payment and treasury infrastructure for the internet economy.",
+    sector: "Financials · Fintech",
+    marketCap: "$5B",
+    exchange: "NYSE",
+    employees: "900",
+    website: "circle.com",
   },
   {
     name: "SanDisk",
@@ -115,5 +193,11 @@ export const STOCKS: Stock[] = [
     contract: "0xb200000000000000000000397293Cb8cda9a10c5",
     feedAddress: "0x388b0dC46C0Fb05A74BeE0994fa5b02c6Fcca2eA",
     logo: "💾",
+    description: "SanDisk, spun off from Western Digital in 2025, manufactures NAND flash memory, SSDs, and storage solutions for consumer, enterprise, and industrial markets worldwide.",
+    sector: "Technology · Semiconductors",
+    marketCap: "$15B",
+    exchange: "NASDAQ",
+    employees: "7,000",
+    website: "sandisk.com",
   },
 ];

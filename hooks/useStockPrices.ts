@@ -51,8 +51,6 @@ export function useStockPrices() {
 
   useEffect(() => {
     fetchPrices();
-    const interval = setInterval(() => fetchPrices(), REFRESH_INTERVAL);
-    return () => clearInterval(interval);
   }, [fetchPrices]);
 
   return {

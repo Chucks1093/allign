@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useAccount } from "wagmi";
@@ -25,7 +25,6 @@ export default function ChatArea() {
   const [isAgentActing, setIsAgentActing] = useState(false);
 
   const { address } = useAccount();
-
   const walletRef = useRef<string | undefined>(undefined);
   walletRef.current = address;
 
@@ -38,9 +37,36 @@ export default function ChatArea() {
   );
 
   const { messages, sendMessage, status, setMessages } = useChat({ transport });
-
   const isLoading = status === "streaming" || status === "submitted";
   const hasMessages = messages.length > 0;
+
+  // Load saved chat when wallet connects
+  useEffect(() => {
+    if (!address) return;
+    fetch(`/api/chats?wallet=${address.toLowerCase()}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages(data.messages);
+        }
+      })
+      .catch(() => {});
+  }, [address]);
+
+  // Auto-save when AI finishes responding
+  const prevStatus = useRef(status);
+  useEffect(() => {
+    const wasStreaming = prevStatus.current === "streaming" || prevStatus.current === "submitted";
+    const doneNow = status === "ready";
+    if (wasStreaming && doneNow && address && messages.length > 0) {
+      fetch("/api/chats", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet: address.toLowerCase(), messages }),
+      }).catch(() => {});
+    }
+    prevStatus.current = status;
+  }, [status, messages, address]);
 
   function handleSend() {
     const text = input.trim();
@@ -76,13 +102,11 @@ export default function ChatArea() {
     if (!address) return;
     setIsAgentActing(true);
     try {
-      // 1. Get spender address (our server wallet)
       const spenderRes = await fetch("/api/agent/spender");
       const spenderData = await spenderRes.json();
       if (!spenderRes.ok) throw new Error(spenderData.error ?? "Could not get spender address");
       const spender = spenderData.address;
 
-      // 2. Request spend permission via Base Account SDK (client-side wallet popup)
       const { createBaseAccountSDK } = await import("@base-org/account");
       const { requestSpendPermission } = await import("@base-org/account/spend-permission");
       const sdk = createBaseAccountSDK({ appName: "Allign" });
@@ -98,16 +122,10 @@ export default function ChatArea() {
         provider: sdk.getProvider(),
       } as never);
 
-      // 3. Store permission server-side
       await fetch("/api/agent/permission/store", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: address,
-          permission,
-          budgetUsdc: budgetUSD,
-          periodDays,
-        }),
+        body: JSON.stringify({ walletAddress: address, permission, budgetUsdc: budgetUSD, periodDays }),
       });
 
       injectAssistantMessage(
