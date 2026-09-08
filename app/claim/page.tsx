@@ -14,6 +14,9 @@ interface GiftRecord {
   status: "pending" | "claimed";
   deposited: boolean;
   sender_address: string;
+  sticker_id?: string | null;
+  message?: string | null;
+  scheduled_at?: string | null;
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -54,7 +57,7 @@ export default async function ClaimPage({ searchParams }: { searchParams: Promis
 
   const { data: gift, error } = await supabase
     .from("gifts")
-    .select("id, type, platform, recipient_handle, ticker, token_contract, amount, status, deposited, sender_address")
+    .select("id, type, platform, recipient_handle, ticker, token_contract, amount, status, deposited, sender_address, sticker_id, message, scheduled_at")
     .eq("id", id)
     .single();
 
@@ -84,15 +87,11 @@ export default async function ClaimPage({ searchParams }: { searchParams: Promis
     );
   }
 
-  // sticker — check if scheduled release date has passed
-  if (gift.type === "sticker" && !gift.deposited) {
+  // scheduled — not yet unlockable
+  if (gift.scheduled_at && new Date(gift.scheduled_at) > new Date()) {
     return (
       <Shell>
-        <div className="text-center space-y-3">
-          <AlertCircle size={36} className="text-yellow-400 mx-auto" />
-          <p className="text-white text-xl font-bold">Not ready yet</p>
-          <p className="text-white/40 text-sm">This gift has a scheduled release date that hasn't arrived yet.</p>
-        </div>
+        <ClaimClient gift={gift as GiftRecord} verified={null} authError={false} />
       </Shell>
     );
   }

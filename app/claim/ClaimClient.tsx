@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAccount, useConnect, useConnectors } from "wagmi";
-import { CheckCircle2, AlertCircle, Loader2, ExternalLink, Wallet, ShieldAlert } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, ExternalLink, Wallet, ShieldAlert, Clock } from "lucide-react";
+import { GIFT_STICKERS } from "@/components/gift/GiftTab";
 
 interface GiftRecord {
   id: string;
@@ -13,6 +14,9 @@ interface GiftRecord {
   amount: number;
   status: "pending" | "claimed";
   sender_address: string;
+  sticker_id?: string | null;
+  message?: string | null;
+  scheduled_at?: string | null;
 }
 
 interface Verified {
@@ -31,20 +35,75 @@ const PLATFORM_LABEL: Record<string, string> = {
   twitter: "X / Twitter", farcaster: "Farcaster", telegram: "Telegram", discord: "Discord",
 };
 
-const CARD_COLORS = ["#E8D5FF", "#FFD6E8", "#FFF5A3", "#D6F0FF", "#FFE4CC", "#D6FFE8"];
+const CARD_COLORS = [
+  "#E8D5FF", "#FFD6E8", "#FFF5A3", "#D6F0FF",
+  "#FFE4CC", "#D6FFE8", "#F5D6FF", "#FFD6D6",
+  "#D6EDFF", "#FFEFD6", "#E8FFD6", "#FFD6F5",
+  "#D6FFF5", "#F5FFD6", "#FFD6E0", "#D6D6FF",
+  "#FFF0D6", "#D6FFE0", "#FFD6EC", "#E0D6FF",
+];
 
 function shortAddr(a: string) { return `${a.slice(0, 6)}…${a.slice(-4)}`; }
 
+function useCountdown(target: string | null | undefined) {
+  const [diff, setDiff] = useState(() =>
+    target ? Math.max(0, new Date(target).getTime() - Date.now()) : 0
+  );
+  useEffect(() => {
+    if (!target) return;
+    const id = setInterval(() => {
+      setDiff(Math.max(0, new Date(target).getTime() - Date.now()));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [target]);
+  const s = Math.floor(diff / 1000);
+  return {
+    locked: diff > 0,
+    days: Math.floor(s / 86400),
+    hours: Math.floor((s % 86400) / 3600),
+    minutes: Math.floor((s % 3600) / 60),
+    seconds: s % 60,
+  };
+}
+
 function GiftCard({ gift }: { gift: GiftRecord }) {
-  const color = CARD_COLORS[parseInt(gift.id[0], 16) % CARD_COLORS.length];
+  const stickerId = gift.sticker_id ? Number(gift.sticker_id) : null;
+  const stickerUrl = stickerId ? GIFT_STICKERS[stickerId] : null;
+  const colorIndex = stickerId ? (stickerId - 1) % CARD_COLORS.length : parseInt(gift.id[0], 16) % CARD_COLORS.length;
+  const color = CARD_COLORS[colorIndex];
+  const countdown = useCountdown(gift.scheduled_at);
+
   return (
     <div className="bg-[#1a1a1a] rounded-2xl p-6 flex flex-col items-center gap-4">
-      <div className="w-24 h-24 rounded-2xl flex items-center justify-center text-5xl"
-        style={{ backgroundColor: color }}>🎁</div>
-      <div className="text-center">
-        <p className="text-white text-3xl font-bold">{gift.amount} {gift.ticker}</p>
-        <p className="text-white/40 text-sm mt-1">from {shortAddr(gift.sender_address)} · Base</p>
+      <div className="w-28 h-28 rounded-2xl flex items-center justify-center"
+        style={{ backgroundColor: color }}>
+        {stickerUrl
+          ? <img src={stickerUrl} alt="" className="w-20 h-20 object-contain" />
+          : <span className="text-5xl">🎁</span>
+        }
       </div>
+      <div className="text-center space-y-1">
+        <p className="text-white text-3xl font-bold">{gift.amount} {gift.ticker}</p>
+        <p className="text-white/40 text-sm">from {shortAddr(gift.sender_address)} · Base</p>
+      </div>
+      {gift.message && (
+        <div className="w-full bg-[#111] rounded-xl px-4 py-3 text-center">
+          <p className="text-white/70 text-sm italic">"{gift.message}"</p>
+        </div>
+      )}
+      {countdown.locked && (
+        <div className="w-full bg-[#111] border border-white/5 rounded-xl px-4 py-3 flex flex-col items-center gap-2">
+          <div className="flex items-center gap-1.5 text-white/40 text-xs">
+            <Clock size={12} /> Unlocks in
+          </div>
+          <div className="flex items-center gap-3 text-white font-mono font-bold text-xl">
+            {countdown.days > 0 && <span>{countdown.days}d</span>}
+            <span>{String(countdown.hours).padStart(2, "0")}h</span>
+            <span>{String(countdown.minutes).padStart(2, "0")}m</span>
+            <span>{String(countdown.seconds).padStart(2, "0")}s</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -303,6 +362,7 @@ export default function ClaimClient({ gift, verified, authError }: Props) {
     verified.platform === gift.platform &&
     verified.handle === gift.recipient_handle?.toLowerCase();
   const wrongHandle = verified && !handleVerified;
+  const isLocked = !!gift.scheduled_at && new Date(gift.scheduled_at) > new Date();
 
   return (
     <div className="space-y-6">
@@ -338,7 +398,7 @@ export default function ClaimClient({ gift, verified, authError }: Props) {
       )}
 
       {/* Handle gift — needs verification first */}
-      {isHandleGift && !handleVerified ? (
+      {isLocked ? null : isHandleGift && !handleVerified ? (
         <HandleVerify gift={gift} />
       ) : isConnected && address ? (
         <div className="space-y-3">

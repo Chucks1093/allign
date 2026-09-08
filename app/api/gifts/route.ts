@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   }
 
   const supabase = createClient(await cookies());
-  const { id, tx_hash } = body;
+  const { id, tx_hash, sticker_id, message, scheduled_at } = body;
 
   const { data, error } = await supabase
     .from("gifts")
@@ -21,6 +21,9 @@ export async function POST(req: Request) {
       ticker, token_contract, amount,
       deposited: !!tx_hash,
       tx_hash: tx_hash ?? null,
+      sticker_id: sticker_id ?? null,
+      message: message ?? null,
+      scheduled_at: scheduled_at ?? null,
     })
     .select("id")
     .single();
