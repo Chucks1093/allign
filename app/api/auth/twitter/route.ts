@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     response_type: "code",
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: "users.read openid",
+    scope: "tweet.read users.read",
     state: giftId,
     code_challenge: codeChallenge,
     code_challenge_method: "S256",
