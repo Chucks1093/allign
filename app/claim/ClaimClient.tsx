@@ -108,12 +108,86 @@ function TelegramVerify({ gift }: { gift: GiftRecord }) {
   );
 }
 
+// Farcaster SIWF — creates a channel, shows "Open in Warpcast" button, polls for completion
+function FarcasterVerify({ gift }: { gift: GiftRecord }) {
+  const [warpcastUrl, setWarpcastUrl] = useState<string | null>(null);
+  const [channelToken, setChannelToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [polling, setPolling] = useState(false);
+
+  async function startSignIn() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/auth/farcaster?giftId=${gift.id}`);
+      const data = await res.json();
+      if (data.url && data.channelToken) {
+        setWarpcastUrl(data.url);
+        setChannelToken(data.channelToken);
+        setPolling(true);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Poll for SIWF completion
+  useEffect(() => {
+    if (!polling || !channelToken) return;
+    const interval = setInterval(async () => {
+      const res = await fetch(`/api/auth/farcaster/callback?channelToken=${channelToken}&giftId=${gift.id}`);
+      const data = await res.json();
+      if (data.state === "completed") {
+        clearInterval(interval);
+        window.location.reload(); // cookie is set, reload to pick it up
+      }
+      if (data.state === "failed") {
+        clearInterval(interval);
+        setPolling(false);
+        setWarpcastUrl(null);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [polling, channelToken, gift.id]);
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-[#1a1a1a] rounded-xl px-5 py-4 text-center space-y-1">
+        <p className="text-white/60 text-sm">This gift was sent to</p>
+        <p className="text-white font-bold text-lg">@{gift.recipient_handle}</p>
+        <p className="text-white/40 text-xs">on Farcaster</p>
+      </div>
+
+      {warpcastUrl ? (
+        <div className="space-y-3">
+          <a href={warpcastUrl} target="_blank" rel="noopener noreferrer"
+            className="w-full py-4 rounded-xl bg-[#855DCD] hover:bg-[#7650C0] text-white font-bold text-base flex items-center justify-center gap-3 transition-colors cursor-pointer">
+            {PLATFORM_ICONS["farcaster"]} Open in Warpcast
+          </a>
+          <div className="flex items-center justify-center gap-2 text-white/30 text-xs">
+            <Loader2 size={12} className="animate-spin" />
+            Waiting for you to sign in Warpcast…
+          </div>
+        </div>
+      ) : (
+        <button onClick={startSignIn} disabled={loading}
+          className="w-full py-4 rounded-xl bg-white hover:bg-white/90 text-black font-bold text-base flex items-center justify-center gap-3 transition-colors cursor-pointer disabled:opacity-50">
+          {loading
+            ? <><Loader2 size={16} className="animate-spin" /> Loading…</>
+            : <>{PLATFORM_ICONS["farcaster"]} Sign in with Farcaster</>}
+        </button>
+      )}
+      <p className="text-center text-white/25 text-xs">We verify you own this handle before releasing the gift.</p>
+    </div>
+  );
+}
+
 // For handle gifts: show platform sign-in button
 function HandleVerify({ gift }: { gift: GiftRecord }) {
   const platform = gift.platform ?? "twitter";
   const [loading, setLoading] = useState(false);
 
   if (platform === "telegram") return <TelegramVerify gift={gift} />;
+  if (platform === "farcaster") return <FarcasterVerify gift={gift} />;
 
   function signIn() {
     setLoading(true);
