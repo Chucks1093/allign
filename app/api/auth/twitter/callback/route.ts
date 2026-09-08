@@ -45,12 +45,12 @@ export async function GET(req: NextRequest) {
   console.log("[twitter/callback] token response status:", tokenRes.status, "body:", JSON.stringify(tokenData));
   if (!tokenData.access_token) return fail(`no access_token: ${JSON.stringify(tokenData)}`);
 
-  const userRes = await fetch("https://api.twitter.com/2/users/me?user.fields=username", {
+  const userRes = await fetch("https://api.twitter.com/2/oauth2/userinfo", {
     headers: { Authorization: `Bearer ${tokenData.access_token}` },
   });
   const userData = await userRes.json();
   console.log("[twitter/callback] user data:", JSON.stringify(userData));
-  const username = userData.data?.username as string | undefined;
+  const username = (userData.preferred_username ?? userData.username) as string | undefined;
   if (!username) return fail(`no username: ${JSON.stringify(userData)}`);
 
   const res = NextResponse.redirect(`${origin}/claim?id=${giftId}`);
