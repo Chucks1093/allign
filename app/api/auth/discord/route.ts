@@ -19,6 +19,6 @@ export async function GET(req: NextRequest) {
   });
 
   const res = NextResponse.redirect(`https://discord.com/api/oauth2/authorize?${params}`);
-  res.cookies.set("discord_origin", origin, { httpOnly: true, maxAge: 600, path: "/" });
+  res.cookies.set("discord_origin", origin, { httpOnly: true, secure: true, sameSite: "lax", maxAge: 600, path: "/" });
   return res;
 }

@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
   });
 
   const res = NextResponse.redirect(`https://twitter.com/i/oauth2/authorize?${params}`);
-  res.cookies.set("twitter_cv", codeVerifier, { httpOnly: true, maxAge: 600, path: "/" });
-  res.cookies.set("twitter_origin", origin, { httpOnly: true, maxAge: 600, path: "/" });
+  const cookieOpts = { httpOnly: true, secure: true, sameSite: "lax" as const, maxAge: 600, path: "/" };
+  res.cookies.set("twitter_cv", codeVerifier, cookieOpts);
+  res.cookies.set("twitter_origin", origin, cookieOpts);
   return res;
 }
