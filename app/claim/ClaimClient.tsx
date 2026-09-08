@@ -108,12 +108,11 @@ function TelegramVerify({ gift }: { gift: GiftRecord }) {
   );
 }
 
-// Farcaster SIWF — creates a channel, shows "Open in Warpcast" button, polls for completion
+// Farcaster SIWF — creates channel + opens Warpcast in one click, polls for completion
 function FarcasterVerify({ gift }: { gift: GiftRecord }) {
-  const [warpcastUrl, setWarpcastUrl] = useState<string | null>(null);
   const [channelToken, setChannelToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [polling, setPolling] = useState(false);
+  const [waiting, setWaiting] = useState(false);
 
   async function startSignIn() {
     setLoading(true);
@@ -121,33 +120,44 @@ function FarcasterVerify({ gift }: { gift: GiftRecord }) {
       const res = await fetch(`/api/auth/farcaster?giftId=${gift.id}`);
       const data = await res.json();
       if (data.url && data.channelToken) {
-        setWarpcastUrl(data.url);
         setChannelToken(data.channelToken);
-        setPolling(true);
+        setWaiting(true);
+        // Open Warpcast immediately — no second button needed
+        window.open(data.url, "_blank");
       }
     } finally {
       setLoading(false);
     }
   }
 
-  // Poll for SIWF completion
+  async function checkStatus(token: string) {
+    const res = await fetch(`/api/auth/farcaster/callback?channelToken=${token}&giftId=${gift.id}`);
+    const data = await res.json();
+    if (data.state === "completed") {
+      window.location.reload();
+    }
+    if (data.state === "failed") {
+      setWaiting(false);
+      setChannelToken(null);
+    }
+  }
+
+  // Poll every 2s while waiting
   useEffect(() => {
-    if (!polling || !channelToken) return;
-    const interval = setInterval(async () => {
-      const res = await fetch(`/api/auth/farcaster/callback?channelToken=${channelToken}&giftId=${gift.id}`);
-      const data = await res.json();
-      if (data.state === "completed") {
-        clearInterval(interval);
-        window.location.reload(); // cookie is set, reload to pick it up
-      }
-      if (data.state === "failed") {
-        clearInterval(interval);
-        setPolling(false);
-        setWarpcastUrl(null);
-      }
-    }, 2000);
+    if (!waiting || !channelToken) return;
+    const interval = setInterval(() => checkStatus(channelToken), 2000);
     return () => clearInterval(interval);
-  }, [polling, channelToken, gift.id]);
+  }, [waiting, channelToken]);
+
+  // Also check immediately when user returns to this tab
+  useEffect(() => {
+    if (!waiting || !channelToken) return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") checkStatus(channelToken);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [waiting, channelToken]);
 
   return (
     <div className="space-y-4">
@@ -157,22 +167,22 @@ function FarcasterVerify({ gift }: { gift: GiftRecord }) {
         <p className="text-white/40 text-xs">on Farcaster</p>
       </div>
 
-      {warpcastUrl ? (
+      {waiting ? (
         <div className="space-y-3">
-          <a href={warpcastUrl} target="_blank" rel="noopener noreferrer"
-            className="w-full py-4 rounded-xl bg-[#855DCD] hover:bg-[#7650C0] text-white font-bold text-base flex items-center justify-center gap-3 transition-colors cursor-pointer">
-            {PLATFORM_ICONS["farcaster"]} Open in Warpcast
-          </a>
-          <div className="flex items-center justify-center gap-2 text-white/30 text-xs">
-            <Loader2 size={12} className="animate-spin" />
-            Waiting for you to sign in Warpcast…
+          <div className="bg-[#1a1a1a] rounded-xl px-5 py-5 flex flex-col items-center gap-3">
+            <Loader2 size={20} className="text-white/40 animate-spin" />
+            <p className="text-white/50 text-sm text-center">Waiting for you to sign in Warpcast…</p>
           </div>
+          <button onClick={() => { setWaiting(false); setChannelToken(null); }}
+            className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/40 text-sm transition-colors cursor-pointer">
+            Cancel
+          </button>
         </div>
       ) : (
         <button onClick={startSignIn} disabled={loading}
           className="w-full py-4 rounded-xl bg-white hover:bg-white/90 text-black font-bold text-base flex items-center justify-center gap-3 transition-colors cursor-pointer disabled:opacity-50">
           {loading
-            ? <><Loader2 size={16} className="animate-spin" /> Loading…</>
+            ? <><Loader2 size={16} className="animate-spin" /> Opening Warpcast…</>
             : <>{PLATFORM_ICONS["farcaster"]} Sign in with Farcaster</>}
         </button>
       )}
