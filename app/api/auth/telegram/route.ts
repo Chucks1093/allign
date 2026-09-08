@@ -16,9 +16,10 @@ export async function GET(req: NextRequest) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return fail();
 
-  // Verify HMAC — Telegram requires this exact format
+  // Verify HMAC — only Telegram's own params, not our custom giftId
   const params = Object.fromEntries(req.nextUrl.searchParams.entries());
   delete params.hash;
+  delete params.giftId; // our param — Telegram didn't sign this
   const checkString = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("\n");
   const secretKey = crypto.createHash("sha256").update(botToken).digest();
   const expectedHash = crypto.createHmac("sha256", secretKey).update(checkString).digest("hex");

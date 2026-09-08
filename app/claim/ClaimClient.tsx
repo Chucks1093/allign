@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useConnect, useConnectors } from "wagmi";
 import { CheckCircle2, AlertCircle, Loader2, ExternalLink, Wallet, ShieldAlert } from "lucide-react";
 
@@ -78,10 +78,42 @@ function ConnectButton({ onConnected }: { onConnected?: () => void }) {
   );
 }
 
+// Telegram widget — injects their script, calls back with verified data
+function TelegramVerify({ gift }: { gift: GiftRecord }) {
+  const botName = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_NAME ?? "").replace(/^@/, "");
+
+  useEffect(() => {
+    if (!(window as any).TelegramLoginWidget) {
+      const script = document.createElement("script");
+      script.src = "https://telegram.org/js/telegram-widget.js?22";
+      script.async = true;
+      script.setAttribute("data-telegram-login", botName ?? "");
+      script.setAttribute("data-size", "large");
+      script.setAttribute("data-auth-url", `${window.location.origin}/api/auth/telegram?giftId=${gift.id}`);
+      script.setAttribute("data-request-access", "write");
+      document.getElementById("tg-widget")?.appendChild(script);
+    }
+  }, [gift.id, botName]);
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-[#1a1a1a] rounded-xl px-5 py-4 text-center space-y-1">
+        <p className="text-white/60 text-sm">This gift was sent to</p>
+        <p className="text-white font-bold text-lg">@{gift.recipient_handle}</p>
+        <p className="text-white/40 text-xs">on Telegram</p>
+      </div>
+      <div id="tg-widget" className="flex justify-center" />
+      <p className="text-center text-white/25 text-xs">We verify you own this handle before releasing the gift.</p>
+    </div>
+  );
+}
+
 // For handle gifts: show platform sign-in button
 function HandleVerify({ gift }: { gift: GiftRecord }) {
   const platform = gift.platform ?? "twitter";
   const [loading, setLoading] = useState(false);
+
+  if (platform === "telegram") return <TelegramVerify gift={gift} />;
 
   function signIn() {
     setLoading(true);

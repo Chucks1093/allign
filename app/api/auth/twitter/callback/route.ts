@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
   const tokenData = await tokenRes.json();
   if (!tokenData.access_token) return fail();
 
-  const userRes = await fetch("https://api.twitter.com/2/users/me", {
+  const userRes = await fetch("https://api.twitter.com/2/users/me?user.fields=username", {
     headers: { Authorization: `Bearer ${tokenData.access_token}` },
   });
   const userData = await userRes.json();
