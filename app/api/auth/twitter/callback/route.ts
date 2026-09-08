@@ -12,17 +12,23 @@ export async function GET(req: NextRequest) {
 
   if (!code || !giftId || !codeVerifier) return fail();
 
-  const clientId = process.env.TWITTER_CLIENT_ID!;
+  const clientId = process.env.TWITTER_OAUTH_CLIENT_ID!;
+  const clientSecret = process.env.TWITTER_OAUTH_CLIENT_SECRET!;
   const redirectUri = `${origin}/api/auth/twitter/callback`;
+
+  // Confidential client uses Basic Auth with client_id:client_secret
+  const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
   const tokenRes = await fetch("https://api.twitter.com/2/oauth2/token", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Authorization": `Basic ${basicAuth}`,
+    },
     body: new URLSearchParams({
       grant_type: "authorization_code",
       code,
       redirect_uri: redirectUri,
-      client_id: clientId,
       code_verifier: codeVerifier,
     }),
   });

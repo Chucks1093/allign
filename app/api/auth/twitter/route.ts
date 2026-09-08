@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
   const giftId = req.nextUrl.searchParams.get("giftId");
   if (!giftId) return NextResponse.json({ error: "Missing giftId" }, { status: 400 });
 
-  const clientId = process.env.TWITTER_CLIENT_ID;
+  const clientId = process.env.TWITTER_OAUTH_CLIENT_ID;
   if (!clientId) return NextResponse.json({ error: "Twitter not configured" }, { status: 500 });
 
   const origin = new URL(req.url).origin;
