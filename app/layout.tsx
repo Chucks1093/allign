@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import { Inter, Manrope, Space_Grotesk } from "next/font/google";
 import WagmiProvider from "@/components/providers/WagmiProvider";
 import "./globals.css";
 
@@ -13,6 +13,11 @@ const manrope = Manrope({
   variable: "--font-manrope",
 });
 
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+});
+
 export const metadata: Metadata = {
   title: "Allign — AI-powered stock trading on Base",
   description: "Buy tokenized US stocks with AI. Available to non-US users on Base.",
@@ -20,7 +25,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${manrope.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${manrope.variable} ${spaceGrotesk.variable} h-full antialiased`}>
       <body className="min-h-full bg-[#0d0d0d] text-white font-[var(--font-inter)]">
         <WagmiProvider>
           {children}
