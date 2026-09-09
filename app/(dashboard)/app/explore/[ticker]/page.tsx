@@ -11,7 +11,7 @@ import {
    CartesianGrid,
 } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { Copy, ExternalLink, Globe } from "lucide-react";
+import { Copy, ExternalLink, Globe, TrendingUp, TrendingDown } from "lucide-react";
 import {
    Breadcrumb,
    BreadcrumbList,
@@ -24,6 +24,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { STOCKS } from "@/lib/stocks/tokens";
 import { useStockPrices } from "@/hooks/useStockPrices";
 import BuyModal from "@/components/trade/BuyModal";
+import TradeCard from "@/components/trade/TradeCard";
 
 const RANGES = ["1D", "1W", "1M", "1Y"] as const;
 type Range = (typeof RANGES)[number];
@@ -86,6 +87,8 @@ export default function StockDetailPage({
    const color = isUp ? "#22c55e" : "#ef4444";
    const chartConfig: ChartConfig = { price: { label: "Price", color } };
 
+   const moreStocks = STOCKS.filter((s) => s.tokenTicker !== stock.tokenTicker).slice(0, 5);
+
    const prices = points.map((p) => p.price);
    const minP = prices.length ? Math.min(...prices) : 0;
    const maxP = prices.length ? Math.max(...prices) : 0;
@@ -93,8 +96,9 @@ export default function StockDetailPage({
    const pad = priceRange > 0 ? priceRange * 0.005 : minP * 0.001;
 
    return (
-      <ScrollArea className="h-full bg-[#0d0d0d]">
+      <ScrollArea className="h-full">
          <div className="px-8 py-8 flex flex-col gap-6">
+
             {/* Back */}
             <Breadcrumb>
                <BreadcrumbList className="text-base">
@@ -115,22 +119,25 @@ export default function StockDetailPage({
                </BreadcrumbList>
             </Breadcrumb>
 
+            {/* Stock identity — full width */}
+            <div className="flex items-center gap-3">
+               <div className="relative shrink-0">
+                  <img src={stock.logo} alt={stock.name} width={48} height={48} className="rounded-full bg-white p-0.5" />
+                  <img src="/icons/base.svg" alt="Base" width={18} height={18} className="absolute -bottom-1 -right-1 rounded border-[2.5px] border-[#0d0d0d]" />
+               </div>
+               <div className="flex items-baseline gap-2">
+                  <h1 className="text-white text-2xl font-bold leading-tight">{stock.name}</h1>
+                  <span className="text-white/40 text-lg font-medium">{stock.tokenTicker}</span>
+               </div>
+            </div>
+
+            {/* Two-column: left scrolls, right sticks */}
+            <div className="grid grid-cols-[1fr_340px] gap-6 items-start">
+
+            {/* LEFT — chart + all details */}
+            <div className="flex flex-col gap-6 min-w-0">
             {/* Chart card */}
             <div className="bg-[#181818] rounded-2xl p-5">
-               {/* Stock identity */}
-               <div className="flex items-center gap-3 mb-5">
-                  <div className="w-11 h-11 rounded-xl bg-[#242424] flex items-center justify-center text-2xl">
-                     {stock.logo}
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                     <h1 className="text-white text-3xl font-bold leading-tight font-manrope">
-                        {stock.name}
-                     </h1>
-                     <span className="text-white/40 text-3xl font-medium font-manrope">
-                        {stock.tokenTicker}
-                     </span>
-                  </div>
-               </div>
                {/* Price row */}
                <div className="flex items-center justify-between mb-1">
                   <p className="text-white text-4xl font-bold tracking-tight">
@@ -260,37 +267,7 @@ export default function StockDetailPage({
                      No data available
                   </div>
                )}
-            </div>
-
-            {/* Buy / Sell */}
-            <div className="flex gap-3">
-               <button
-                  onClick={() => {
-                     setTab("Buy");
-                     setShowModal(true);
-                  }}
-                  disabled={stock.tradable === false}
-                  className="flex-1 py-3.5 rounded-2xl text-sm font-semibold bg-[#a8ff78] hover:bg-[#96f060] text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-               >
-                  Buy {stock.tokenTicker}
-               </button>
-               <button
-                  onClick={() => {
-                     setTab("Sell");
-                     setShowModal(true);
-                  }}
-                  disabled={stock.tradable === false}
-                  className="flex-1 py-3.5 rounded-2xl text-sm font-semibold bg-white/5 hover:bg-white/10 text-white border border-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-               >
-                  Sell {stock.tokenTicker}
-               </button>
-            </div>
-
-            {stock.tradable === false && (
-               <p className="text-white/30 text-xs text-center -mt-2">
-                  Trading not yet live for this stock
-               </p>
-            )}
+            </div>{/* end chart card */}
 
             {/* About */}
             {stock.description && (
@@ -382,33 +359,84 @@ export default function StockDetailPage({
                         <Copy size={12} />
                      </button>
                   </div>
-                  <div className="flex items-center justify-between px-5 py-4">
+                  <a
+                     href={`https://basescan.org/token/${stock.contract}`}
+                     target="_blank"
+                     rel="noreferrer"
+                     className="flex items-center justify-between px-5 py-4 hover:bg-white/[0.03] transition-colors"
+                  >
                      <span className="text-white/40 text-sm">Explorer</span>
+                     <span className="flex items-center gap-1.5 text-white/70 text-sm">
+                        Basescan <ExternalLink size={12} />
+                     </span>
+                  </a>
+                  {stock.website && (
                      <a
-                        href={`https://basescan.org/token/${stock.contract}`}
+                        href={`https://${stock.website}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm transition-colors"
+                        className="flex items-center justify-between px-5 py-4 hover:bg-white/[0.03] transition-colors"
                      >
-                        Basescan <ExternalLink size={12} />
-                     </a>
-                  </div>
-                  {stock.website && (
-                     <div className="flex items-center justify-between px-5 py-4">
                         <span className="text-white/40 text-sm">Website</span>
-                        <a
-                           href={`https://${stock.website}`}
-                           target="_blank"
-                           rel="noreferrer"
-                           className="flex items-center gap-1.5 text-white/70 hover:text-white text-sm transition-colors"
-                        >
+                        <span className="flex items-center gap-1.5 text-white/70 text-sm">
                            <Globe size={12} /> {stock.website}
-                        </a>
-                     </div>
+                        </span>
+                     </a>
                   )}
                </div>
+            </div>{/* end Links & Info */}
+
+            {/* More Stocks */}
+            <div className="space-y-3">
+               <h2 className="text-white font-bold text-lg">More Stocks</h2>
+               <div className="grid grid-cols-2 gap-3">
+                  {moreStocks.map((s) => {
+                     const d = stocks.find((x) => x.stock.tokenTicker === s.tokenTicker);
+                     const sPrice = d?.price ?? 0;
+                     const sChg = d?.changePercent;
+                     const sUp = (sChg ?? 0) >= 0;
+                     return (
+                        <a
+                           key={s.tokenTicker}
+                           href={`/app/explore/${s.tokenTicker}`}
+                           className="bg-[#1a1a1a] border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors"
+                        >
+                           <div className="flex items-center gap-3 mb-4">
+                              <div className="relative shrink-0">
+                                 <img src={s.logo} alt={s.name} width={42} height={42} className="rounded-full bg-white p-0.5" />
+                                 <img src="/icons/base.svg" alt="Base" width={15} height={15} className="absolute -bottom-0.5 -right-0.5 rounded border-[2.5px] border-[#1a1a1a]" />
+                              </div>
+                              <div>
+                                 <p className="text-white font-semibold text-sm leading-tight">{s.name}</p>
+                                 <p className="text-white/40 text-xs mt-0.5">{s.tokenTicker}</p>
+                              </div>
+                           </div>
+                           <div className="flex items-center justify-between">
+                              <p className="text-white text-base font-bold">
+                                 {sPrice > 0 ? `$${sPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                              </p>
+                              {sChg !== undefined && (
+                                 <p className={`text-sm font-semibold flex items-center gap-1 ${sUp ? "text-emerald-400" : "text-red-400"}`}>
+                                    {sUp ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                    {sUp ? "+" : ""}{sChg.toFixed(2)}%
+                                 </p>
+                              )}
+                           </div>
+                        </a>
+                     );
+                  })}
+               </div>
             </div>
-         </div>
+
+            </div>{/* end LEFT column */}
+
+            {/* RIGHT — sticky trade card */}
+            <div className="sticky top-8">
+               <TradeCard stock={stock} price={price} />
+            </div>
+
+            </div>{/* end two-column grid */}
+         </div>{/* end outer flex */}
 
          {showModal && price > 0 && (
             <BuyModal
