@@ -29,6 +29,24 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ messages: data?.messages ?? [] });
 }
 
+// DELETE /api/chats?wallet=0x...
+export async function DELETE(req: NextRequest) {
+  const wallet = req.nextUrl.searchParams.get("wallet");
+  if (!wallet) return NextResponse.json({ error: "wallet required" }, { status: 400 });
+
+  const { error } = await supabase()
+    .from("chat")
+    .delete()
+    .eq("wallet_address", wallet.toLowerCase());
+
+  if (error) {
+    console.error("chat DELETE error:", error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
 // POST /api/chats  { wallet, messages }
 export async function POST(req: NextRequest) {
   const body = await req.json();

@@ -11,12 +11,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const QUICK_COMMANDS = [
-   "Buy $5 of NVIDIA",
-   "Buy $1 of Tesla",
-   "What's Apple's price?",
+   "Show available stocks",
+   "What's trending today?",
+   "What's declining today?",
    "Show my portfolio",
+   "What's Apple's price?",
    "Activate AI agent",
-   "What stocks are trending?",
 ];
 
 interface EmptyChatProps {
@@ -75,11 +75,11 @@ export default function EmptyChat({
 
             <div className="flex flex-wrap items-center justify-center gap-2">
                {[
-                  "Buy $5 of NVIDIA",
-                  "What's Apple's price?",
+                  "Show available stocks",
+                  "What's trending today?",
+                  "What's declining today?",
                   "Show my portfolio",
                   "Activate AI agent",
-                  "Buy $1 of Tesla",
                ].map((cmd) => (
                   <button
                      key={cmd}
@@ -131,6 +131,8 @@ export default function EmptyChat({
                   <Send size={14} className="text-black" />
                </button>
             </div>
+
+            <p className="text-white/60 text-[11px] -mt-4">Available to eligible non-US users only</p>
 
             {items.length > 0 && (
                <div

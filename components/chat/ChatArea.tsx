@@ -4,6 +4,7 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useAccount } from "wagmi";
+import { useSendCalls, useCallsStatus } from "wagmi";
 import EmptyChat from "./EmptyChat";
 import ChatMessages from "./ChatMessages";
 import BuyModal from "@/components/trade/BuyModal";
@@ -23,8 +24,29 @@ export default function ChatArea() {
   const [input, setInput] = useState("");
   const [tradeModal, setTradeModal] = useState<TradeModalState | null>(null);
   const [isAgentActing, setIsAgentActing] = useState(false);
+  const [pendingTrade, setPendingTrade] = useState<{
+    callsId: string;
+    userText: string;
+    received: string;
+  } | null>(null);
 
   const { address } = useAccount();
+  const { sendCallsAsync } = useSendCalls();
+  const { data: callsStatus } = useCallsStatus({
+    id: pendingTrade?.callsId ?? "",
+    query: { enabled: !!pendingTrade?.callsId, refetchInterval: 1500 },
+  });
+
+  // When tx confirms, send result to AI (hidden from user bubble)
+  useEffect(() => {
+    if (!callsStatus?.receipts?.length || !pendingTrade) return;
+    const txHash = callsStatus.receipts[0].transactionHash;
+    const link = `https://basescan.org/tx/${txHash}`;
+    sendMessage({
+      text: `__trade_result__ "${pendingTrade.userText}" succeeded. User received ${pendingTrade.received}. Basescan: ${link}. Tell the user in a short friendly message and include the link.`,
+    });
+    setPendingTrade(null);
+  }, [callsStatus]);
   const walletRef = useRef<string | undefined>(undefined);
   walletRef.current = address;
 
@@ -68,6 +90,23 @@ export default function ChatArea() {
     prevStatus.current = status;
   }, [status, messages, address]);
 
+  function patchToolOutput(toolCallId: string, patch: Record<string, any>) {
+    setMessages((prev: any) =>
+      prev.map((msg: any) => ({
+        ...msg,
+        parts: msg.parts?.map((p: any) =>
+          p.toolCallId === toolCallId ? { ...p, output: { ...p.output, ...patch } } : p
+        ),
+      }))
+    );
+  }
+
+  function patchMessage(messageId: string, patch: Record<string, any>) {
+    setMessages((prev: any) =>
+      prev.map((msg: any) => (msg.id === messageId ? { ...msg, ...patch } : msg))
+    );
+  }
+
   function handleSend() {
     const text = input.trim();
     if (!text || isLoading) return;
@@ -79,6 +118,57 @@ export default function ChatArea() {
     const stock = STOCKS.find((s) => s.tokenTicker === sym);
     if (!stock) return;
     setTradeModal({ stock, price, initialTab: side === "buy" ? "Buy" : "Sell", initialAmount });
+  }
+
+  async function handleExecuteTrade(sym: string, side: "buy" | "sell", amount: string, name: string, toolCallId: string) {
+    patchToolOutput(toolCallId, { _traded: true });
+    if (!address) return;
+
+    // 1. Inject user message into chat
+    const userText = side === "buy"
+      ? `Buy $${amount} of ${name}`
+      : `Sell ${amount} ${sym}`;
+
+    setMessages((prev: any) => [
+      ...prev,
+      { id: `trade-${Date.now()}`, role: "user", parts: [{ type: "text", text: userText }] },
+    ]);
+
+    // 2. Fetch fresh quote to get transaction steps
+    let quote: any;
+    try {
+      const res = await fetch("/api/stocks/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sym, side, amount, taker: address, slippageBps: 100 }),
+      });
+      quote = await res.json();
+      if (!res.ok || !quote.steps?.length) throw new Error(quote.error ?? "Quote failed");
+    } catch (e: any) {
+      sendMessage({ text: `__trade_failed__ ${userText} failed: ${e.message}. Tell the user briefly.` });
+      return;
+    }
+
+    // 3. Send transaction — wallet popup appears
+    try {
+      const result = await sendCallsAsync({
+        calls: quote.steps.map((step: any) => ({
+          to: step.to,
+          data: step.data,
+          value: BigInt(step.value),
+        })),
+      });
+
+      const received = side === "buy"
+        ? `${(Number(quote.advisory.amountOut) / 1e8).toFixed(6)} ${sym}`
+        : `$${(Number(quote.advisory.amountOut) / 1e6).toFixed(4)} USDC`;
+
+      // Store pending trade — useEffect will fire when tx confirms and send to AI
+      setPendingTrade({ callsId: result.id, userText, received });
+    } catch (e: any) {
+      const reason = e?.shortMessage ?? e?.message ?? "Transaction rejected";
+      sendMessage({ text: `__trade_failed__ ${userText} failed: ${reason}. Tell the user briefly.` });
+    }
   }
 
   function injectAssistantMessage(text: string) {
@@ -98,9 +188,21 @@ export default function ChatArea() {
     });
   }
 
-  async function handleConfirmAgent(budgetUSD: number, periodDays: number) {
+  async function handleConfirmAgent(budgetUSD: number, periodDays: number, messageId: string) {
     if (!address) return;
     setIsAgentActing(true);
+    patchMessage(messageId, { _agentConfirmed: true });
+
+    // Inject user message into chat
+    setMessages((prev: any) => [
+      ...prev,
+      {
+        id: `agent-${Date.now()}`,
+        role: "user",
+        parts: [{ type: "text", text: `Activate Allign AI Agent — $${budgetUSD} USDC/day for ${periodDays} days` }],
+      },
+    ]);
+
     try {
       const spenderRes = await fetch("/api/agent/spender");
       const spenderData = await spenderRes.json();
@@ -128,14 +230,14 @@ export default function ChatArea() {
         body: JSON.stringify({ walletAddress: address, permission, budgetUsdc: budgetUSD, periodDays }),
       });
 
-      injectAssistantMessage(
-        `✅ Agent activated! I'll trade up to $${budgetUSD} USDC per day for the next ${periodDays} days. I run every 4 hours — check the Agent page to see my activity.`
-      );
+      sendMessage({
+        text: `__agent_activated__ Budget: $${budgetUSD} USDC/day for ${periodDays} days. Tell the user their Allign AI Agent is now live in a short friendly message. Mention it runs every 4 hours and they can check the Agent page for activity.`,
+      });
     } catch (e: any) {
       console.error("Agent activation failed:", e);
-      injectAssistantMessage(
-        `❌ Activation failed: ${e?.message ?? "Wallet signature rejected"}. Try again when ready.`
-      );
+      sendMessage({
+        text: `__agent_failed__ ${e?.message ?? "Wallet signature rejected"}. Tell the user activation failed briefly and suggest they try again.`,
+      });
     } finally {
       setIsAgentActing(false);
     }
@@ -154,6 +256,17 @@ export default function ChatArea() {
           input={input}
           onInputChange={setInput}
           onSend={handleSend}
+          onExecuteTrade={handleExecuteTrade}
+          onClearChat={() => {
+            setMessages([]);
+            if (address) {
+              fetch("/api/chats", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ wallet: address.toLowerCase(), messages: [] }),
+              }).catch(() => {});
+            }
+          }}
           onOpenTrade={handleOpenTrade}
           onConfirmAgent={handleConfirmAgent}
           onRejectAgent={handleRejectAgent}
