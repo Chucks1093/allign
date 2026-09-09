@@ -2,7 +2,6 @@
 
 import { usePathname } from "next/navigation";
 import {
-   Bell,
    MessageCircle,
    Globe,
    BriefcaseBusiness,
@@ -11,12 +10,13 @@ import {
    type LucideIcon,
 } from "lucide-react";
 import WalletDropdown from "@/components/header/WalletDropdown";
+import AgentStatusBadge from "@/components/header/AgentStatusBadge";
 
 const ROUTES: Record<string, { title: string; icon: LucideIcon }> = {
    "/app": { title: "Chat", icon: MessageCircle },
    "/app/explore": { title: "Stocks", icon: Globe },
    "/app/portfolio": { title: "Portfolio", icon: BriefcaseBusiness },
-   "/app/agent": { title: "Activity", icon: Clock5 },
+   "/app/activity": { title: "Activity", icon: Clock5 },
    "/app/gift": { title: "Gift", icon: Gift },
 };
 
@@ -34,7 +34,6 @@ export default function ChatHeader() {
 
    return (
       <div className="flex items-center justify-between gap-2 px-5 py-3 bg-transparent shrink-0">
-         {/* Page title + icon */}
          <div className="flex items-center gap-2">
             <Icon size={20} className="text-white" />
             <span className="text-white font-bold text-xl font-manrope">
@@ -43,7 +42,7 @@ export default function ChatHeader() {
          </div>
 
          <div className="flex items-center gap-2">
-            {/* Wallet pill */}
+            <AgentStatusBadge />
             <WalletDropdown />
          </div>
       </div>

@@ -10,6 +10,7 @@ import ChatMessages from "./ChatMessages";
 import BuyModal from "@/components/trade/BuyModal";
 import { STOCKS } from "@/lib/stocks/tokens";
 import type { Stock } from "@/lib/stocks/tokens";
+import { recordActivity } from "@/lib/agent/activity";
 
 interface TradeModalState {
   stock: Stock;
@@ -28,6 +29,8 @@ export default function ChatArea() {
     callsId: string;
     userText: string;
     received: string;
+    sym: string;
+    side: "buy" | "sell";
   } | null>(null);
 
   const { address } = useAccount();
@@ -37,7 +40,7 @@ export default function ChatArea() {
     query: { enabled: !!pendingTrade?.callsId, refetchInterval: 1500 },
   });
 
-  // When tx confirms, send result to AI (hidden from user bubble)
+  // When tx confirms, send result to AI and record activity
   useEffect(() => {
     if (!callsStatus?.receipts?.length || !pendingTrade) return;
     const txHash = callsStatus.receipts[0].transactionHash;
@@ -45,6 +48,26 @@ export default function ChatArea() {
     sendMessage({
       text: `__trade_result__ "${pendingTrade.userText}" succeeded. User received ${pendingTrade.received}. Basescan: ${link}. Tell the user in a short friendly message and include the link.`,
     });
+    if (address) {
+      const isBuy = pendingTrade.side === "buy";
+      const receivedParts = pendingTrade.received.split(" ");
+      const shares = parseFloat(receivedParts[0]) || 0;
+      const amount_usdc = parseFloat(pendingTrade.userText.replace(/[^0-9.]/g, "")) || 0;
+      recordActivity({
+        wallet_address: address,
+        type: pendingTrade.side,
+        title: isBuy ? `Bought ${pendingTrade.sym}` : `Sold ${pendingTrade.sym}`,
+        description: pendingTrade.userText,
+        info: {
+          ticker: pendingTrade.sym,
+          shares,
+          amount_usdc,
+          price: shares > 0 ? amount_usdc / shares : 0,
+          tx_hash: txHash,
+          signal_score: 0,
+        },
+      }).catch(() => {});
+    }
     setPendingTrade(null);
   }, [callsStatus]);
   const walletRef = useRef<string | undefined>(undefined);
@@ -164,10 +187,19 @@ export default function ChatArea() {
         : `$${(Number(quote.advisory.amountOut) / 1e6).toFixed(4)} USDC`;
 
       // Store pending trade — useEffect will fire when tx confirms and send to AI
-      setPendingTrade({ callsId: result.id, userText, received });
+      setPendingTrade({ callsId: result.id, userText, received, sym, side });
     } catch (e: any) {
       const reason = e?.shortMessage ?? e?.message ?? "Transaction rejected";
       sendMessage({ text: `__trade_failed__ ${userText} failed: ${reason}. Tell the user briefly.` });
+      if (address) {
+        recordActivity({
+          wallet_address: address,
+          type: "error",
+          title: `${side === "buy" ? "Buy" : "Sell"} failed`,
+          description: userText,
+          info: { reason, ticker: sym },
+        }).catch(() => {});
+      }
     }
   }
 

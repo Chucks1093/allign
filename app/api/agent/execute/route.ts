@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { scoreAllStocks, getTradeDecisions } from "@/lib/agent/signals";
 import { fetchStockQuote } from "@/lib/stocks/ozmium";
 import { log, logSeparator } from "@/lib/agent/logger";
+import { recordActivity } from "@/lib/agent/activity";
 
 export const maxDuration = 300;
 
@@ -64,6 +65,13 @@ export async function POST(req: NextRequest) {
           run_at: runAt,
           event_type: "skip",
           message: "No strong signals this run",
+        });
+        await recordActivity({
+          wallet_address: config.wallet_address,
+          type: "info",
+          title: "No trades this run",
+          description: "Agent found no strong signals — no positions taken",
+          info: { body: "No strong signals this run" },
         });
         results.push({ wallet: config.wallet_address, status: "skipped", reason: "no strong signals" });
         continue;
@@ -146,6 +154,20 @@ export async function POST(req: NextRequest) {
           tx_hash: finalTx,
           signal_score: compositeScore,
         });
+        await recordActivity({
+          wallet_address: config.wallet_address,
+          type: "buy",
+          title: `Bought ${candidate.stock.ticker}`,
+          description: `Agent bought ${sharesReceived.toFixed(6)} ${tokenTicker} for $${amountUsdc.toFixed(2)} USDC`,
+          info: {
+            ticker: tokenTicker,
+            shares: sharesReceived,
+            amount_usdc: amountUsdc,
+            price: quote.advisory.pricePerShare,
+            tx_hash: finalTx,
+            signal_score: compositeScore,
+          },
+        });
 
         results.push({ wallet: config.wallet_address, ticker: tokenTicker, status: "ok", tx: finalTx });
         traded = true;
@@ -159,6 +181,13 @@ export async function POST(req: NextRequest) {
           event_type: "skip",
           message: "All candidates failed — no liquid pool or price deviation too high",
         });
+        await recordActivity({
+          wallet_address: config.wallet_address,
+          type: "info",
+          title: "Trade skipped",
+          description: "All candidates failed — no liquid pool or price deviation too high",
+          info: { body: "All candidates failed — no liquid pool or price deviation too high" },
+        });
         results.push({ wallet: config.wallet_address, status: "skipped", reason: "all candidates failed" });
       }
     } catch (e: any) {
@@ -169,6 +198,13 @@ export async function POST(req: NextRequest) {
         run_at: runAt,
         event_type: "error",
         message: msg,
+      });
+      await recordActivity({
+        wallet_address: config.wallet_address,
+        type: "error",
+        title: "Agent error",
+        description: msg,
+        info: { reason: msg },
       });
       results.push({ wallet: config.wallet_address, status: "error", error: msg });
     }

@@ -75,8 +75,9 @@ export default function ExplorePage() {
             const returnPct = realReturn ?? s.returnPct;
             const up = returnPct >= 0;
             return (
-              <div
+              <a
                 key={s.id}
+                href={`/app/strategy/${s.id}`}
                 className="relative rounded-2xl p-4 overflow-hidden cursor-pointer group bg-[#1a1a1a] hover:bg-[#222] transition-colors h-[160px] flex flex-col justify-between"
               >
                 {/* Stock logos — large, greyed, bleeding off right edge */}
@@ -146,7 +147,7 @@ export default function ExplorePage() {
                     <ChevronRight size={18} className="text-white" />
                   </div>
                 </div>
-              </div>
+              </a>
             );
           })}
         </div>
@@ -257,8 +258,9 @@ export default function ExplorePage() {
                 const mcapDisplay = statsLoading ? null : formatUsd(tokenStat?.marketCap);
 
                 return (
-                  <div
+                  <a
                     key={data.stock.tokenTicker}
+                    href={`/app/explore/${data.stock.tokenTicker}`}
                     className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] items-center px-5 py-4 hover:bg-white/[0.03] transition-colors cursor-pointer ${idx < arr.length - 1 ? "border-b border-white/[0.04]" : ""}`}
                   >
                     {/* Token */}
@@ -311,7 +313,7 @@ export default function ExplorePage() {
 
                     {/* Age */}
                     <p className="text-white/50 text-sm text-right">{age}</p>
-                  </div>
+                  </a>
                 );
               })}
           </div>

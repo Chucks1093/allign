@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import ClaimClient from "./ClaimClient";
-import { Gift, AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 
 interface GiftRecord {
   id: string;
@@ -21,11 +22,15 @@ interface GiftRecord {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center px-4 font-[var(--font-manrope)]">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen relative flex items-center justify-center px-4 font-[var(--font-manrope)]"
+      style={{ background: "linear-gradient(to bottom, rgba(37,99,235,0.4) 0%, rgba(37,99,235,0.15) 35%, #0d0d0d 65%)" }}
+    >
+      <div className="absolute inset-0 pointer-events-none opacity-[0.3] z-0" style={{ backgroundImage: "url('/images/noise.png')" }} />
+      <div className="relative z-10 w-full max-w-md">
         <div className="flex justify-center mb-10">
-          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-            <Gift size={20} className="text-white/60" />
+          <div className="w-14 h-14 rounded-xl bg-white/90 flex items-center justify-center shrink-0">
+            <Image src="/logo.svg" alt="allign" width={34} height={34} className="invert" />
           </div>
         </div>
         {children}

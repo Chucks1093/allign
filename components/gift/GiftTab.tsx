@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { X, ChevronDown, Loader2, Copy, Check, Zap, CalendarDays } from "lucide-react";
+import { X, Loader2, Copy, Check, Zap, CalendarDays } from "lucide-react";
 import { useWalletClient } from "wagmi";
 import { depositGift } from "@/lib/gifts/deposit";
+import { FormInput } from "@/components/ui/form-input";
+import StockAmountInput from "./StockAmountInput";
 
 export const GIFT_STICKERS: Record<number, string> = {
   1:  "/icons/sticker1.svg",
@@ -65,7 +67,6 @@ export default function GiftTab({ address, holdings, selected, setSelected, stoc
 
   const [message, setMessage] = useState("");
   const [amount, setAmount] = useState("");
-  const [showPicker, setShowPicker] = useState(false);
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
 
@@ -89,7 +90,6 @@ export default function GiftTab({ address, holdings, selected, setSelected, stoc
     setScheduleDate("");
     setError(null);
     setClaimLink(null);
-    setShowPicker(false);
   }
 
   function closeModal() {
@@ -166,7 +166,7 @@ export default function GiftTab({ address, holdings, selected, setSelected, stoc
     .toISOString().slice(0, 16);
 
   return (
-    <>
+    <div className="max-w-xl mx-auto">
       {/* Sticker grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         {Object.entries(GIFT_STICKERS).map(([idStr, url], i) => {
@@ -236,78 +236,23 @@ export default function GiftTab({ address, holdings, selected, setSelected, stoc
                   </div>
 
                   {/* Message */}
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Message (optional)</p>
-                    <textarea
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      placeholder="Write something nice…"
-                      rows={2}
-                      maxLength={200}
-                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none placeholder:text-white/25 resize-none focus:border-white/30 transition-colors"
-                    />
-                  </div>
+                  <FormInput
+                    label="Message (optional)"
+                    value={message}
+                    onChange={setMessage}
+                    placeholder="Write something nice…"
+                    type="textarea"
+                    rows={2}
+                  />
 
-                  {/* Token selector */}
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Stock to gift</p>
-                    <div className="relative">
-                      <button onClick={() => setShowPicker((v) => !v)}
-                        className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3.5 flex items-center gap-3 hover:border-white/20 transition-colors cursor-pointer">
-                        <span className="text-xl">{selected?.logo}</span>
-                        <div className="flex-1 text-left">
-                          <p className="text-white font-bold text-sm">{selected?.tokenTicker}</p>
-                          <p className="text-white/40 text-xs">{selected?.shares.toFixed(4)} available</p>
-                        </div>
-                        <ChevronDown size={15} className={`text-white/40 transition-transform ${showPicker ? "rotate-180" : ""}`} />
-                      </button>
-                      {showPicker && (
-                        <div className="absolute top-full mt-1.5 left-0 right-0 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden z-20 shadow-2xl">
-                          {holdings.map((h) => (
-                            <button key={h.ticker}
-                              onClick={() => { setSelected(h); setShowPicker(false); setAmount(""); }}
-                              className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors cursor-pointer ${selected?.ticker === h.ticker ? "bg-white/5" : ""}`}>
-                              <span className="text-lg">{h.logo}</span>
-                              <div className="flex-1 text-left">
-                                <p className="text-white text-sm font-bold">{h.tokenTicker}</p>
-                                <p className="text-white/40 text-xs">{h.name}</p>
-                              </div>
-                              <p className="text-white/40 text-xs">{h.shares.toFixed(4)}</p>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Amount */}
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Amount</p>
-                    <div className="bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3.5 focus-within:border-white/30 transition-colors">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          placeholder="0"
-                          className="flex-1 bg-transparent text-white text-2xl font-bold outline-none placeholder:text-white/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button onClick={() => setAmount(selected?.shares.toFixed(8) ?? "")}
-                            className="text-xs text-white/50 hover:text-white bg-white/5 hover:bg-white/10 px-2 py-0.5 rounded-md cursor-pointer transition-colors">
-                            MAX
-                          </button>
-                          <span className="text-white/40 text-sm">{selected?.tokenTicker}</span>
-                        </div>
-                      </div>
-                      {parsedAmount > 0 && selected && (
-                        <p className="text-xs text-white/30 mt-1.5">≈ ${(parsedAmount * selected.price).toFixed(2)} USD</p>
-                      )}
-                    </div>
-                    {parsedAmount > (selected?.shares ?? 0) && parsedAmount > 0 && (
-                      <p className="text-xs text-red-400 px-1">Exceeds your balance</p>
-                    )}
-                  </div>
+                  {/* Stock + Amount */}
+                  <StockAmountInput
+                    holdings={holdings}
+                    selected={selected}
+                    onSelect={(h) => { setSelected(h); setAmount(""); }}
+                    tokenAmount={amount}
+                    onTokenAmountChange={setAmount}
+                  />
 
                   {/* Schedule */}
                   <div className="space-y-2">
@@ -315,23 +260,43 @@ export default function GiftTab({ address, holdings, selected, setSelected, stoc
                     <div className="flex gap-2">
                       <button
                         onClick={() => setScheduleEnabled(false)}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${!scheduleEnabled ? "bg-white text-black" : "bg-white/5 text-white/40 hover:text-white/70"}`}>
-                        <Zap size={14} /> Now
+                        className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all cursor-pointer text-left ${
+                          !scheduleEnabled
+                            ? "border-white/40 bg-white/5"
+                            : "border-white/10 bg-transparent hover:border-white/20"
+                        }`}>
+                        <Zap size={18} className={!scheduleEnabled ? "text-white shrink-0" : "text-white/30 shrink-0"} />
+                        <div>
+                          <p className={`text-sm font-semibold ${!scheduleEnabled ? "text-white" : "text-white/40"}`}>Now</p>
+                          <p className={`text-xs mt-0.5 ${!scheduleEnabled ? "text-white/50" : "text-white/20"}`}>Release immediately</p>
+                        </div>
                       </button>
                       <button
                         onClick={() => setScheduleEnabled(true)}
-                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${scheduleEnabled ? "bg-white text-black" : "bg-white/5 text-white/40 hover:text-white/70"}`}>
-                        <CalendarDays size={14} /> Schedule
+                        className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all cursor-pointer text-left ${
+                          scheduleEnabled
+                            ? "border-white/40 bg-white/5"
+                            : "border-white/10 bg-transparent hover:border-white/20"
+                        }`}>
+                        <CalendarDays size={18} className={scheduleEnabled ? "text-white shrink-0" : "text-white/30 shrink-0"} />
+                        <div>
+                          <p className={`text-sm font-semibold ${scheduleEnabled ? "text-white" : "text-white/40"}`}>Schedule</p>
+                          <p className={`text-xs mt-0.5 ${scheduleEnabled ? "text-white/50" : "text-white/20"}`}>Choose date & time</p>
+                        </div>
                       </button>
                     </div>
                     {scheduleEnabled && (
-                      <input
-                        type="datetime-local"
-                        value={scheduleDate}
-                        min={minDatetime}
-                        onChange={(e) => setScheduleDate(e.target.value)}
-                        className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-white/30 transition-colors [color-scheme:dark]"
-                      />
+                      <div className="flex flex-col gap-1.5">
+                        <div className="relative flex items-center w-full border bg-[#0c0c0c] rounded-sm border-[#2a2a2a] focus-within:border-white/30 focus-within:ring-2 focus-within:ring-white/10 transition-colors">
+                          <input
+                            type="datetime-local"
+                            value={scheduleDate}
+                            min={minDatetime}
+                            onChange={(e) => setScheduleDate(e.target.value)}
+                            className="flex-1 bg-transparent text-sm text-white px-4 py-4 outline-none [color-scheme:dark]"
+                          />
+                        </div>
+                      </div>
                     )}
                   </div>
 
@@ -340,7 +305,7 @@ export default function GiftTab({ address, holdings, selected, setSelected, stoc
                   )}
 
                   <button onClick={handleSend} disabled={!canSend}
-                    className="w-full py-4 rounded-xl bg-[#a8ff78] hover:bg-[#96f060] text-black font-bold text-sm transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    className="w-full py-4 rounded-xl bg-white/90 hover:bg-white text-black font-bold text-sm transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                     {sending
                       ? <><Loader2 size={15} className="animate-spin" /> {statusMsg || "Processing…"}</>
                       : scheduleEnabled ? "Schedule gift" : "Send gift"}
@@ -351,6 +316,6 @@ export default function GiftTab({ address, holdings, selected, setSelected, stoc
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

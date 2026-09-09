@@ -11,13 +11,13 @@ export async function GET(req: NextRequest) {
     const supabase = createClient(cookieStore);
 
     const { data } = await supabase
-      .from("trades")
+      .from("activity")
       .select("*")
       .eq("wallet_address", wallet.toLowerCase())
       .order("created_at", { ascending: false })
       .limit(50);
 
-    return NextResponse.json({ trades: data ?? [] });
+    return NextResponse.json({ activity: data ?? [] });
   } catch {
     return NextResponse.json({ trades: [] });
   }

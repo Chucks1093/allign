@@ -70,26 +70,24 @@ export default function GiftView() {
   }
 
   return (
-    <ScrollArea className="h-full bg-[#0d0d0d]">
+    <ScrollArea className="h-full">
       <div className="px-8 py-8 space-y-6">
 
         {/* Tab switcher */}
-        <div className="flex items-center gap-3">
+        <div className="flex w-fit bg-[#111] rounded-xl p-1 mx-auto">
           {([
-            { key: "handle", icon: <span className="text-sm font-bold">@</span>, label: "Handle" },
-            { key: "link",   icon: <Link2 size={15} />, label: "Link" },
-            { key: "gift",   icon: <Gift size={15} />, label: "Gift" },
+            { key: "handle", icon: <span className="text-sm font-bold leading-none">@</span>, label: "Handle" },
+            { key: "link",   icon: <Link2 size={14} />, label: "Link" },
+            { key: "gift",   icon: <Gift size={14} />, label: "Gift" },
           ] as const).map(({ key, icon, label }) => (
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
-                tab === key
-                  ? "bg-white text-black"
-                  : "bg-white/10 text-white/40 hover:text-white/70"
+              className={`flex items-center gap-2.5 px-8 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                tab === key ? "bg-[#2a2a2a] text-white" : "text-white/30 hover:text-white/50"
               }`}
             >
-              <span>{icon}</span>
+              {icon}
               <span>{label}</span>
             </button>
           ))}

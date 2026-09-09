@@ -16,7 +16,7 @@ const NAV_ITEMS = [
    { icon: Globe, label: "Stocks", href: "/app/explore" },
    { icon: BriefcaseBusiness, label: "Portfolio", href: "/app/portfolio" },
    { icon: Gift, label: "Gifts", href: "/app/gift" },
-   { icon: Clock5, label: "Activity", href: "/app/agent" },
+   { icon: Clock5, label: "Activity", href: "/app/activity" },
 ];
 
 export default function Sidebar() {

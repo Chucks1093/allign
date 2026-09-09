@@ -8,6 +8,7 @@ import { X, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import type { Stock } from "@/lib/stocks/tokens";
 import type { OzmiumQuoteResult } from "@/lib/stocks/ozmium";
 import { USDC_ADDRESS, ERC20_ABI, USDC_DECIMALS } from "@/lib/0x/constants";
+import { recordActivity } from "@/lib/agent/activity";
 
 type Tab = "Buy" | "Sell";
 type Status = "idle" | "signing" | "success" | "error";
@@ -109,10 +110,48 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
       setCallsId(result.id);
       setStatus("success");
     } catch (e: any) {
+      const reason = e?.shortMessage ?? e?.message ?? "Transaction failed";
       setStatus("error");
-      setErrorMsg(e?.shortMessage ?? e?.message ?? "Transaction failed");
+      setErrorMsg(reason);
+      if (address) {
+        recordActivity({
+          wallet_address: address,
+          type: "error",
+          title: `${isBuy ? "Buy" : "Sell"} failed`,
+          description: `Failed to ${isBuy ? "buy" : "sell"} ${stock.ticker}`,
+          info: { reason, ticker: stock.tokenTicker },
+        }).catch(() => {});
+      }
     }
   }
+
+  // Record activity when tx confirms
+  useEffect(() => {
+    if (!callsStatus?.receipts?.length || !address || !quote) return;
+    const txHash = callsStatus.receipts[0].transactionHash;
+    const shares = isBuy
+      ? Number(quote.advisory.amountOut) / 1e8
+      : parseFloat(input);
+    const amount_usdc = isBuy
+      ? parseFloat(input)
+      : Number(quote.advisory.amountOut) / 1e6;
+    recordActivity({
+      wallet_address: address,
+      type: isBuy ? "buy" : "sell",
+      title: isBuy ? `Bought ${stock.ticker}` : `Sold ${stock.ticker}`,
+      description: isBuy
+        ? `Bought ${shares.toFixed(6)} ${stock.tokenTicker} for $${amount_usdc.toFixed(2)} USDC`
+        : `Sold ${shares.toFixed(6)} ${stock.tokenTicker} for $${amount_usdc.toFixed(2)} USDC`,
+      info: {
+        ticker: stock.tokenTicker,
+        shares,
+        amount_usdc,
+        price: quote.advisory.pricePerShare,
+        tx_hash: txHash,
+        signal_score: 0,
+      },
+    }).catch(() => {});
+  }, [callsStatus?.receipts?.length]);
 
   const parsedInput = parseFloat(input) || 0;
   const advisory = quote?.advisory;
