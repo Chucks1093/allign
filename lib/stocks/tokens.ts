@@ -12,6 +12,8 @@ export interface Stock {
   exchange?: string;
   employees?: string;
   website?: string;
+  /** Unix timestamp of first on-chain transaction (contract deployment) */
+  launchedAt?: number;
 }
 
 export const STOCKS: Stock[] = [
@@ -28,6 +30,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "36,000",
     website: "nvidia.com",
+    launchedAt: 1785080097,
   },
   {
     name: "Apple",
@@ -42,6 +45,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "164,000",
     website: "apple.com",
+    launchedAt: 1785080205,
   },
   {
     name: "Meta",
@@ -56,6 +60,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "72,000",
     website: "meta.com",
+    launchedAt: 1785080253,
   },
   {
     name: "Alphabet",
@@ -70,6 +75,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "182,000",
     website: "abc.xyz",
+    launchedAt: 1785080227,
   },
   {
     name: "Amazon",
@@ -84,6 +90,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "1,580,000",
     website: "amazon.com",
+    launchedAt: 1785080181,
   },
   {
     name: "Microsoft",
@@ -98,6 +105,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "228,000",
     website: "microsoft.com",
+    launchedAt: 1785080160,
   },
   {
     name: "Tesla",
@@ -112,6 +120,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "140,000",
     website: "tesla.com",
+    launchedAt: 1785080133,
   },
   {
     name: "Coinbase",
@@ -127,6 +136,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "3,500",
     website: "coinbase.com",
+    launchedAt: 1785080210,
   },
   {
     name: "MicroStrategy",
@@ -141,6 +151,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "1,850",
     website: "strategy.com",
+    launchedAt: 1785080240,
   },
   {
     name: "Intel",
@@ -156,6 +167,7 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "108,900",
     website: "intel.com",
+    launchedAt: 1785080175,
   },
   {
     name: "SpaceX",
@@ -170,6 +182,7 @@ export const STOCKS: Stock[] = [
     exchange: "Private",
     employees: "13,000",
     website: "spacex.com",
+    launchedAt: 1785080190,
   },
   {
     name: "Circle",
@@ -185,6 +198,7 @@ export const STOCKS: Stock[] = [
     exchange: "NYSE",
     employees: "900",
     website: "circle.com",
+    launchedAt: 1785080220,
   },
   {
     name: "SanDisk",
@@ -199,5 +213,6 @@ export const STOCKS: Stock[] = [
     exchange: "NASDAQ",
     employees: "7,000",
     website: "sandisk.com",
+    launchedAt: 1785080260,
   },
 ];

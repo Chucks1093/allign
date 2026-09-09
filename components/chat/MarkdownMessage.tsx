@@ -24,7 +24,7 @@ export function MarkdownMessage({ content }: { content: string }) {
               : <code className="text-sm font-mono text-white bg-white/10 px-1.5 py-0.5 rounded">{children}</code>,
           pre: ({ children }) => <div className="my-2 w-full overflow-hidden">{children}</div>,
           hr: () => <div className="border-t border-white/10 my-3" />,
-          a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-[#a8ff78] underline underline-offset-2 hover:text-[#a8ff78]/80">{children}</a>,
+          a: ({ href, children }) => <a href={href} target="_blank" rel="noreferrer" className="text-blue-400 underline underline-offset-2 hover:text-blue-300">{children}</a>,
         }}
       >
         {content}

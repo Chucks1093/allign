@@ -41,8 +41,21 @@ export default function StockCard({ data }: StockCardProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-full bg-[#2a2a2a] flex items-center justify-center text-lg shrink-0">
-            {stock.logo}
+          <div className="relative shrink-0">
+            <img
+              src={stock.logo}
+              alt={stock.name}
+              width={36}
+              height={36}
+              className="rounded-full bg-white p-0.5"
+            />
+            <img
+              src="/icons/base.svg"
+              alt="Base"
+              width={13}
+              height={13}
+              className="absolute -bottom-0.5 -right-0.5 rounded border-[2px] border-[#1a1a1a]"
+            />
           </div>
           <div>
             <p className="text-white font-semibold text-sm leading-tight">{stock.name}</p>
@@ -64,7 +77,7 @@ export default function StockCard({ data }: StockCardProps) {
         <p className="text-white font-bold text-xl">
           {error ? "—" : `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
         </p>
-        <p className="text-white/30 text-xs mt-0.5">per token · Base</p>
+        {stock.marketCap && <p className="text-white/60 text-xs mt-0.5">Mkt Cap {stock.marketCap}</p>}
       </div>
 
       {/* Sparkline */}
@@ -86,6 +99,7 @@ export default function StockCard({ data }: StockCardProps) {
                 strokeWidth={1.5}
                 fill={`url(#g-${stock.ticker})`}
                 dot={false}
+                activeDot={false}
                 isAnimationActive={false}
               />
             </AreaChart>
