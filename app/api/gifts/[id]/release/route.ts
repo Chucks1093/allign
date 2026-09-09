@@ -5,6 +5,7 @@ import { createWalletClient, createPublicClient, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import { uuidToBytes32 } from "@/lib/gifts/deposit";
+import { recordActivity } from "@/lib/agent/activity";
 
 const ESCROW_ADDRESS = process.env.NEXT_PUBLIC_GIFT_ESCROW_ADDRESS as `0x${string}`;
 
@@ -27,7 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // fetch gift
   const { data: gift, error: fetchErr } = await supabase
     .from("gifts")
-    .select("id, status, deposited")
+    .select("id, status, deposited, ticker, amount, sender_address")
     .eq("id", id)
     .single();
 
@@ -53,6 +54,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .from("gifts")
       .update({ status: "claimed", claimed_by: recipient })
       .eq("id", id);
+
+    await Promise.all([
+      // sender sees their gift was claimed
+      recordActivity({
+        wallet_address: gift.sender_address,
+        type: "gift",
+        title: `Gift claimed`,
+        description: `Your ${gift.ticker} gift of ${gift.amount} shares was claimed`,
+        info: { ticker: gift.ticker, shares: gift.amount, to_address: recipient, tx_hash: hash, gift_id: id },
+      }).catch(() => {}),
+      // recipient sees they received a gift
+      recordActivity({
+        wallet_address: recipient,
+        type: "gift",
+        title: `Received ${gift.ticker}`,
+        description: `You received ${gift.amount} ${gift.ticker} as a gift`,
+        info: { ticker: gift.ticker, shares: gift.amount, to_address: recipient, tx_hash: hash, gift_id: id },
+      }).catch(() => {}),
+    ]);
 
     return NextResponse.json({ ok: true, txHash: hash });
   } catch (e: any) {

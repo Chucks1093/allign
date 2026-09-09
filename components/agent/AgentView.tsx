@@ -83,8 +83,7 @@ export default function AgentView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-white font-bold text-lg">Activity</h2>
+      <div className="flex justify-end">
         <button
           onClick={fetchData}
           className="flex items-center gap-1.5 text-white/40 hover:text-white text-xs bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer"

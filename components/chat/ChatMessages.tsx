@@ -704,6 +704,9 @@ function QuoteCard({
    onOpenTrade: ChatMessagesProps["onOpenTrade"];
    onExecuteTrade: ChatMessagesProps["onExecuteTrade"];
 }) {
+   const usdcBalance = useUsdcBalance();
+   const [traded, setTraded] = useState(() => !!part.output?._traded);
+
    if (part.state === "input") {
       return (
          <div className="flex items-center gap-2 bg-[#1a1a1a] border border-white/10 rounded-2xl px-4 py-3 text-sm text-white/40">
@@ -726,9 +729,7 @@ function QuoteCard({
    if (!q) return null;
 
    const isBuy = q.side === "buy";
-   const usdcBalance = useUsdcBalance();
    const deviation = Math.abs(q.vsFeedPct) > 2;
-   const [traded, setTraded] = useState(() => !!q._traded);
 
    return (
       <div className="bg-[#1a1a1a] border border-white/10 rounded-xl px-7 pt-4 pb-4 w-full sm:w-[calc(50%-4px)] flex flex-col gap-4">

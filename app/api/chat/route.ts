@@ -33,26 +33,50 @@ Rules:
 - When you receive a message starting with __agent_failed__, agent activation failed — respond briefly with what went wrong and suggest trying again
 
 ## Autonomous Trading Agent
-When the user asks to activate the agent, set up auto trading, or let AI trade for them:
-1. Suggest a daily budget (default $5/day) and ask them to confirm
-2. Once they confirm, end your message with this exact tag on its own line:
+When the user asks to activate the agent, set up auto trading, enable the AI agent, or let AI trade for them:
+1. ALWAYS treat this as a NEW activation request — never assume the agent is already active from chat history
+2. Suggest a daily budget (default $5/day) and ask them to confirm
+3. Once they confirm, end your message with this exact tag on its own line:
    [ACTION:ACTIVATE_AGENT budgetUSD=5 periodDays=30]
    (replace 5 with whatever budget they chose)
-3. The app will handle the wallet signature — do not explain the technical steps
-4. After activation succeeds, confirm the agent is live and explain it runs every 4 hours`;
+4. The app will handle the wallet signature — do not explain the technical steps
+5. After activation succeeds (__agent_activated__ message), confirm the agent is live and explain it runs every 4 hours
+6. NEVER say the agent is "already activated" or reference previous activations from chat history — you have no way to verify the current on-chain state
+7. NEVER call getQuote when the user asks about activating the agent
+
+## Tool usage rules
+- Only call getQuote ONCE per response, for a single specific stock the user explicitly named
+- Never call getQuote multiple times in one response
+- Never call getQuote when the user asks about the agent, portfolio, or available stocks`;
 
 export async function POST(req: Request) {
   const { messages, walletAddress }: { messages: UIMessage[]; walletAddress?: string } = await req.json();
+
+  const INTERNAL_PREFIXES = ["__trade_result__", "__trade_failed__", "__agent_activated__", "__agent_failed__"];
+  const filteredMessages = messages.filter((msg) => {
+    if (msg.role !== "user") return true;
+    const text = (msg.parts?.find((p: any) => p.type === "text") as any)?.text as string ?? "";
+    return !INTERNAL_PREFIXES.some((prefix) => text.startsWith(prefix));
+  });
 
   const system = walletAddress
     ? `${SYSTEM}\n\nWallet connected: ${walletAddress}`
     : `${SYSTEM}\n\nNo wallet connected — tell the user to connect their wallet before trading.`;
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: openai("gpt-4o"),
     system,
-    messages: await convertToModelMessages(messages),
+    messages: await convertToModelMessages(filteredMessages),
     stopWhen: isStepCount(5),
+    onChunk: ({ chunk }: any) => {
+      if (chunk.type === "text-delta") process.stdout.write(chunk.textDelta ?? "");
+      else if (chunk.type === "tool-call") console.log("\n[chat] tool-call:", JSON.stringify({ tool: chunk.toolName, input: chunk.input ?? chunk.args }));
+    },
+    onFinish: ({ text, usage, toolCalls }: any) => {
+      console.log("\n[chat] response:", text);
+      if (toolCalls?.length) console.log("[chat] tool-calls:", JSON.stringify(toolCalls.map((t: any) => ({ tool: t.toolName, args: t.args ?? t.input }))));
+      console.log("[chat] usage:", JSON.stringify(usage));
+    },
     tools: {
       getQuote: tool({
         description: "Get a live buy or sell quote for a tokenized stock. Call this whenever the user asks about buying or selling.",
