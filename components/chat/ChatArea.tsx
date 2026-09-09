@@ -146,7 +146,7 @@ export default function ChatArea() {
   }
 
   return (
-    <div className="flex flex-col flex-1 h-full bg-[#0d0d0d] overflow-hidden">
+    <div className="flex flex-col flex-1 h-full bg-transparent overflow-hidden">
       {hasMessages ? (
         <ChatMessages
           messages={messages}
