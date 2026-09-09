@@ -133,47 +133,6 @@ export default function EmptyChat({
             </div>
 
             <p className="text-white/60 text-[11px] -mt-4">Available to eligible non-US users only</p>
-
-            {items.length > 0 && (
-               <div
-                  className="w-full overflow-hidden"
-                  style={{
-                     maskImage:
-                        "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
-                     WebkitMaskImage:
-                        "linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%)",
-                  }}
-               >
-                  <div className="flex gap-3 animate-ticker w-max">
-                     {items.map((t, i) => (
-                        <div
-                           key={i}
-                           className="flex items-center gap-2.5 bg-[#1a1a1a] border border-white/8 rounded-xl px-4 py-2.5 shrink-0"
-                        >
-                           <span className="text-lg leading-none">
-                              {t.logo}
-                           </span>
-                           <span className="text-white text-sm font-semibold">
-                              {t.tokenTicker}
-                           </span>
-                           <span className="text-white/50 text-sm">
-                              $
-                              {t.price.toLocaleString("en-US", {
-                                 minimumFractionDigits: 2,
-                                 maximumFractionDigits: 2,
-                              })}
-                           </span>
-                           <span
-                              className={`text-xs font-bold ${t.changePercent >= 0 ? "text-emerald-400" : "text-red-400"}`}
-                           >
-                              {t.changePercent >= 0 ? "+" : ""}
-                              {t.changePercent.toFixed(2)}%
-                           </span>
-                        </div>
-                     ))}
-                  </div>
-               </div>
-            )}
          </div>
       </div>
    );

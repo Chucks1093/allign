@@ -31,6 +31,7 @@ export interface GiftInfo {
   shares: number;
   to_address: string;
   tx_hash: string;
+  gift_id?: string;
 }
 
 export interface ErrorInfo {
@@ -153,6 +154,9 @@ function SellModal({ info }: { info: SellInfo }) {
 
 function GiftModal({ info }: { info: GiftInfo }) {
   const stock = STOCKS.find((s) => s.tokenTicker === info.ticker);
+  const claimLink = info.gift_id
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/claim?id=${info.gift_id}`
+    : null;
   return (
     <>
       <div className="flex flex-col items-center py-7 gap-1.5">
@@ -167,6 +171,9 @@ function GiftModal({ info }: { info: GiftInfo }) {
         <DetailRow label="To" value={shortAddr(info.to_address)} mono copyValue={info.to_address} />
         <DetailRow label="Network" value="Base" />
         <DetailRow label="Transaction" value={shortHash(info.tx_hash)} mono copyValue={info.tx_hash} />
+        {claimLink && (
+          <DetailRow label="Claim link" value={`/claim?id=${info.gift_id!.slice(0, 8)}…`} mono copyValue={claimLink} />
+        )}
       </div>
       <ViewTxButton hash={info.tx_hash} />
     </>

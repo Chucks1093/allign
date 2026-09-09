@@ -50,9 +50,11 @@ export default function ChatArea() {
     });
     if (address) {
       const isBuy = pendingTrade.side === "buy";
-      const receivedParts = pendingTrade.received.split(" ");
-      const shares = parseFloat(receivedParts[0]) || 0;
-      const amount_usdc = parseFloat(pendingTrade.userText.replace(/[^0-9.]/g, "")) || 0;
+      // buy:  received = "0.001287 NVDAc",  userText = "Buy $0.29 of NVIDIA"
+      // sell: received = "$0.2900 USDC",     userText = "Sell 0.001287 NVDAc"
+      const receivedNum = parseFloat(pendingTrade.received.replace(/[^0-9.]/g, "")) || 0;
+      const shares = isBuy ? receivedNum : parseFloat(pendingTrade.userText.split(" ")[1]) || 0;
+      const amount_usdc = isBuy ? parseFloat(pendingTrade.userText.replace(/[^0-9.]/g, "")) || 0 : receivedNum;
       recordActivity({
         wallet_address: address,
         type: pendingTrade.side,

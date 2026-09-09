@@ -35,7 +35,7 @@ export async function recordActivity<T extends ActivityType>(
 ): Promise<void> {
   const supabase = getClient();
   const { error } = await supabase.from("activity").insert({
-    wallet_address: input.wallet_address,
+    wallet_address: input.wallet_address.toLowerCase(),
     type: input.type,
     title: input.title,
     description: input.description,

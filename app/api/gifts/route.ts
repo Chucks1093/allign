@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { recordActivity } from "@/lib/agent/activity";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -29,5 +30,22 @@ export async function POST(req: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (tx_hash) {
+    await recordActivity({
+      wallet_address: sender_address,
+      type: "gift",
+      title: `Gifted ${ticker}`,
+      description: `Sent ${amount} ${ticker} as a gift`,
+      info: {
+        ticker,
+        shares: amount,
+        to_address: recipient_handle ?? "link",
+        tx_hash,
+        gift_id: data.id,
+      },
+    }).catch(() => {});
+  }
+
   return NextResponse.json({ id: data.id });
 }

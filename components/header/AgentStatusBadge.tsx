@@ -4,43 +4,48 @@ import { useEffect, useState, useCallback } from "react";
 import { useAccount } from "wagmi";
 import { Brain, Zap, Pause, Loader2, AlertCircle, ChevronRight } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { getPermissionStatus } from "@base-org/account/spend-permission";
 
 interface AgentConfig {
   daily_budget_usdc: number;
   is_active: boolean;
   permission_expires_at: string;
-  spend_permission_json?: object;
+  spend_permission_json?: any;
 }
 
-interface ActivityEntry {
-  event_type: "trade" | "skip" | "error";
-  amount_usdc?: number;
-  tx_hash?: string;
-  message: string;
-  created_at: string;
+interface PermStatus {
+  isActive: boolean;
+  isExpired: boolean;
+  remainingSpend: bigint;
+  currentPeriod: { spend: bigint };
 }
 
 function fmt(n: number) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 }
 
+function fmtUsdc(wei: bigint) {
+  return fmt(Number(wei) / 1e6);
+}
+
 export default function AgentStatusBadge() {
   const { address } = useAccount();
   const [config, setConfig] = useState<AgentConfig | null>(null);
-  const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [permStatus, setPermStatus] = useState<PermStatus | null>(null);
   const [toggling, setToggling] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!address) return;
     try {
-      const [configRes, tradesRes] = await Promise.all([
-        fetch(`/api/agent/permission/store?wallet=${address}`),
-        fetch(`/api/agent/trades?wallet=${address}`),
-      ]);
+      const configRes = await fetch(`/api/agent/permission/store?wallet=${address}`);
       const { config } = await configRes.json();
-      const { trades } = await tradesRes.json();
       setConfig(config ?? null);
-      setActivity(trades ?? []);
+      if (config?.spend_permission_json) {
+        const status = await getPermissionStatus(config.spend_permission_json, {
+          rpcUrl: "https://mainnet.base.org",
+        });
+        setPermStatus(status as PermStatus);
+      }
     } catch {
       // silent
     }
@@ -69,15 +74,17 @@ export default function AgentStatusBadge() {
     }
   }
 
-  // Only show if wallet connected and agent has been configured
-  if (!address || !config) return null;
+  // Only show if wallet connected, agent configured, manually active, permission active on-chain, and budget not exhausted
+  if (!address || !config || !config.is_active) return null;
+  if (permStatus && (!permStatus.isActive || permStatus.remainingSpend === 0n)) return null;
 
-  const isExpired = new Date(config.permission_expires_at) < new Date();
+  const isExpired = permStatus ? permStatus.isExpired : new Date(config.permission_expires_at) < new Date();
   const isActive = config.is_active && !isExpired;
-  const totalSpent = activity
-    .filter((a) => a.event_type === "trade")
-    .reduce((s, t) => s + (t.amount_usdc ?? 0), 0);
-const statusDot = isExpired ? "bg-red-400" : isActive ? "bg-[#a8ff78]" : "bg-yellow-400";
+  const allowance = config.spend_permission_json?.permission?.allowance
+    ? BigInt(config.spend_permission_json.permission.allowance)
+    : BigInt(Math.round(config.daily_budget_usdc * 1_000_000));
+  const spent = permStatus?.currentPeriod?.spend ?? 0n;
+  const statusDot = isExpired ? "bg-red-400" : isActive ? "bg-[#a8ff78]" : "bg-yellow-400";
 
   return (
     <Popover>
@@ -121,12 +128,12 @@ const statusDot = isExpired ? "bg-red-400" : isActive ? "bg-[#a8ff78]" : "bg-yel
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2 mt-2">
           <div className="bg-[#252525] rounded-lg px-3 py-2.5">
-            <p className="text-white/40 text-xs mb-1">Daily budget</p>
-            <p className="text-white font-semibold text-sm">${config.daily_budget_usdc} USDC</p>
+            <p className="text-white/40 text-xs mb-1">Budget</p>
+            <p className="text-white font-semibold text-sm">{fmtUsdc(allowance)}</p>
           </div>
           <div className="bg-[#252525] rounded-lg px-3 py-2.5">
-            <p className="text-white/40 text-xs mb-1">Total spent</p>
-            <p className="text-white font-semibold text-sm">{fmt(totalSpent)}</p>
+            <p className="text-white/40 text-xs mb-1">Spent</p>
+            <p className="text-white font-semibold text-sm">{fmtUsdc(spent)}</p>
           </div>
         </div>
 

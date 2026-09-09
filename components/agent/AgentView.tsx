@@ -3,8 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAccount } from "wagmi";
 import { Bot, Loader2, RefreshCw } from "lucide-react";
-import { ActivityRow, MOCK_ACTIVITY } from "./ActivityRow";
+import { ActivityRow } from "./ActivityRow";
 import type { Activity } from "./ActivityRow";
+import { createClient } from "@/utils/supabase/client";
 
 interface AgentConfig {
   wallet_address: string;
@@ -40,6 +41,27 @@ export default function AgentView() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    if (!address) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`activity:${address.toLowerCase()}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "activity",
+          filter: `wallet_address=eq.${address.toLowerCase()}`,
+        },
+        (payload) => {
+          setActivity((prev) => [payload.new as Activity, ...prev]);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [address]);
+
   if (!address) {
     return (
       <div className="py-20 flex flex-col items-center gap-3 text-center">
@@ -57,7 +79,7 @@ export default function AgentView() {
     );
   }
 
-  const rows = [...MOCK_ACTIVITY, ...activity];
+  const rows = activity;
 
   return (
     <div className="space-y-4">

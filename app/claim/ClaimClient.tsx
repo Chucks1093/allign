@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAccount, useConnect, useConnectors } from "wagmi";
-import { CheckCircle2, AlertCircle, Loader2, ExternalLink, Wallet, ShieldAlert, Clock } from "lucide-react";
+import { useAccount, useConnect, useConnectors, useDisconnect } from "wagmi";
+import { CheckCircle2, AlertCircle, Loader2, ExternalLink, Wallet, ShieldAlert, Clock, LogOut } from "lucide-react";
 import { GIFT_STICKERS } from "@/components/gift/GiftTab";
 import { FormInput } from "@/components/ui/form-input";
+import { STOCKS } from "@/lib/stocks/tokens";
 
 interface GiftRecord {
   id: string;
@@ -73,18 +74,25 @@ function GiftCard({ gift }: { gift: GiftRecord }) {
   const colorIndex = stickerId ? (stickerId - 1) % CARD_COLORS.length : parseInt(gift.id[0], 16) % CARD_COLORS.length;
   const color = CARD_COLORS[colorIndex];
   const countdown = useCountdown(gift.scheduled_at);
+  const stock = STOCKS.find((s) => s.tokenTicker === gift.ticker);
 
   return (
     <div className="bg-[#1a1a1a] rounded-2xl p-6 flex flex-col items-center gap-4">
-      <div className="w-28 h-28 rounded-2xl flex items-center justify-center"
-        style={{ backgroundColor: color }}>
-        {stickerUrl
-          ? <img src={stickerUrl} alt="" className="w-20 h-20 object-contain" />
-          : <span className="text-5xl">🎁</span>
-        }
+      <div className="relative w-28 h-28">
+        <div className="w-28 h-28 rounded-2xl flex items-center justify-center"
+          style={{ backgroundColor: stickerUrl ? color : "#D6F0FF" }}>
+          {stickerUrl
+            ? <img src={stickerUrl} alt="" className="w-20 h-20 object-contain" />
+            : <img src="/icons/gift.svg" alt="gift" className="w-20 h-20 object-contain" />
+          }
+        </div>
+        {stock && (
+          <div className="absolute -bottom-2 -right-2 w-9 h-9 rounded-full bg-white p-0.5 shadow-lg">
+            <img src={stock.logo} alt={stock.name} className="w-full h-full rounded-full object-cover" />
+          </div>
+        )}
       </div>
       <div className="text-center space-y-1">
-        <p className="text-white text-3xl font-bold">{gift.amount} {gift.ticker}</p>
         <p className="text-white/40 text-sm">from {shortAddr(gift.sender_address)} · Base</p>
       </div>
       {gift.message && (
@@ -290,6 +298,7 @@ interface Props {
 
 export default function ClaimClient({ gift, verified, authError }: Props) {
   const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
   const [step, setStep] = useState<"landing" | "claiming" | "done" | "error">("landing");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -368,7 +377,7 @@ export default function ClaimClient({ gift, verified, authError }: Props) {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-1">
-        <p className="text-white text-2xl font-bold">You have a gift</p>
+        <p className="text-white text-4xl font-semibold font-montserrat">You have a gift</p>
         {isHandleGift && gift.recipient_handle && (
           <p className="text-white/40 text-sm">
             sent to <span className="text-white">@{gift.recipient_handle}</span>
@@ -401,20 +410,27 @@ export default function ClaimClient({ gift, verified, authError }: Props) {
       {/* Handle gift — needs verification first */}
       {isLocked ? null : isHandleGift && !handleVerified ? (
         <HandleVerify gift={gift} />
-      ) : isConnected && address ? (
-        <div className="space-y-3">
-          <div className="bg-[#1a1a1a] rounded-xl px-5 py-4 flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-            <p className="text-white font-mono text-sm flex-1">{shortAddr(address)}</p>
-            <span className="text-xs text-emerald-400 font-medium">Connected</span>
-          </div>
-          <button onClick={handleClaim}
-            className="w-full py-4 rounded-xl bg-white hover:bg-white/90 text-black font-bold text-base transition-colors cursor-pointer">
-            Claim {gift.amount} {gift.ticker}
-          </button>
-        </div>
       ) : (
-        <ConnectButton />
+        <div className="bg-[#1a1a1a] rounded-xl overflow-hidden">
+          {isConnected && address ? (
+            <div className="px-5 py-4 flex items-center gap-3 border-b border-white/[0.06]">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+              <p className="text-white font-mono text-sm flex-1">{shortAddr(address)}</p>
+              <span className="text-xs text-emerald-400 font-medium">Connected</span>
+              <button onClick={() => disconnect()} className="w-6 h-6 rounded-md bg-red-500/20 hover:bg-red-500/40 flex items-center justify-center transition-colors cursor-pointer ml-1">
+                <LogOut size={12} className="text-red-400" />
+              </button>
+            </div>
+          ) : (
+            <ConnectButton />
+          )}
+          <div className="p-3">
+            <button onClick={handleClaim} disabled={!isConnected || !address}
+              className="w-full py-4 rounded-lg bg-white hover:bg-white/90 text-black font-bold text-base transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
+              Claim gift
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

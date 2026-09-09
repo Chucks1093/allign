@@ -42,7 +42,6 @@ function Shell({ children }: { children: React.ReactNode }) {
 export default async function ClaimPage({ searchParams }: { searchParams: Promise<{ id?: string; auth_error?: string }> }) {
   const { id, auth_error } = await searchParams;
 
-  // no id → handle search UI
   if (!id) {
     return (
       <Shell>
