@@ -52,13 +52,6 @@ When the user asks to activate the agent, set up auto trading, enable the AI age
 export async function POST(req: Request) {
   const { messages, walletAddress }: { messages: UIMessage[]; walletAddress?: string } = await req.json();
 
-  const INTERNAL_PREFIXES = ["__trade_result__", "__trade_failed__", "__agent_activated__", "__agent_failed__"];
-  const filteredMessages = messages.filter((msg) => {
-    if (msg.role !== "user") return true;
-    const text = (msg.parts?.find((p: any) => p.type === "text") as any)?.text as string ?? "";
-    return !INTERNAL_PREFIXES.some((prefix) => text.startsWith(prefix));
-  });
-
   const system = walletAddress
     ? `${SYSTEM}\n\nWallet connected: ${walletAddress}`
     : `${SYSTEM}\n\nNo wallet connected — tell the user to connect their wallet before trading.`;
@@ -66,7 +59,7 @@ export async function POST(req: Request) {
   const result = streamText({
     model: openai("gpt-4o"),
     system,
-    messages: await convertToModelMessages(filteredMessages),
+    messages: await convertToModelMessages(messages),
     stopWhen: isStepCount(5),
     onChunk: ({ chunk }: any) => {
       if (chunk.type === "text-delta") process.stdout.write(chunk.textDelta ?? "");
