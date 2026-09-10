@@ -6,6 +6,9 @@ import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import { uuidToBytes32 } from "@/lib/gifts/deposit";
 import { recordActivity } from "@/lib/agent/activity";
+import { Attribution } from "ox/erc8021";
+
+const DATA_SUFFIX = Attribution.toDataSuffix({ codes: ["bc_fmbqk5r8"] });
 
 const ESCROW_ADDRESS = process.env.NEXT_PUBLIC_GIFT_ESCROW_ADDRESS as `0x${string}`;
 
@@ -37,7 +40,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   // call release() from operator wallet
   const account = privateKeyToAccount(`0x${process.env.GIFT_ESCROW_OPERATOR_PRIVATE_KEY}` as `0x${string}`);
-  const walletClient = createWalletClient({ account, chain: base, transport: http() });
+  const walletClient = createWalletClient({ account, chain: base, transport: http(), dataSuffix: DATA_SUFFIX });
   const publicClient = createPublicClient({ chain: base, transport: http() });
 
   try {

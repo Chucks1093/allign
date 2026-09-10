@@ -3,6 +3,9 @@ import { privateKeyToAccount } from "viem/accounts";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
 import { CdpClient } from "@coinbase/cdp-sdk";
+import { Attribution } from "ox/erc8021";
+
+const DATA_SUFFIX = Attribution.toDataSuffix({ codes: ["bc_fmbqk5r8"] });
 import { cookies } from "next/headers";
 import { createClient } from "@/utils/supabase/server";
 import { scoreAllStocks, getTradeDecisions } from "@/lib/agent/signals";
@@ -247,6 +250,7 @@ export async function POST(req: NextRequest) {
 
         const atomicOp = await networkAccount.sendUserOperation({
           calls: [...spendCalls, ...swapCalls],
+          dataSuffix: DATA_SUFFIX,
         });
         const atomicReceipt = await networkAccount.waitForUserOperation({ userOpHash: atomicOp.userOpHash });
 

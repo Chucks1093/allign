@@ -1,6 +1,9 @@
 import { cookieStorage, createConfig, createStorage, http } from "wagmi";
 import { base } from "wagmi/chains";
 import { createConnector } from "wagmi";
+import { Attribution } from "ox/erc8021";
+
+const DATA_SUFFIX = Attribution.toDataSuffix({ codes: ["bc_fmbqk5r8"] });
 
 const STORAGE_KEY = "allign_wallet_address";
 
@@ -84,4 +87,5 @@ export const wagmiConfig = createConfig({
   transports: {
     [base.id]: http(),
   },
+  dataSuffix: DATA_SUFFIX,
 });

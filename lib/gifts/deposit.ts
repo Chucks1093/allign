@@ -1,5 +1,8 @@
-import { createPublicClient, encodeFunctionData, http, type WalletClient } from "viem";
+import { createPublicClient, encodeFunctionData, http, type WalletClient, concat } from "viem";
 import { base } from "viem/chains";
+import { Attribution } from "ox/erc8021";
+
+const DATA_SUFFIX = Attribution.toDataSuffix({ codes: ["bc_fmbqk5r8"] });
 
 const ESCROW_ADDRESS = process.env.NEXT_PUBLIC_GIFT_ESCROW_ADDRESS as `0x${string}`;
 
@@ -82,7 +85,7 @@ export async function depositGift({
         from: address,
         calls: [
           { to: tokenContract, data: approveData },
-          { to: ESCROW_ADDRESS, data: depositData },
+          { to: ESCROW_ADDRESS, data: concat([depositData, DATA_SUFFIX]) },
         ],
       }],
     });
