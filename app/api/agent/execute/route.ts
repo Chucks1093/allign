@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { privateKeyToAccount } from "viem/accounts";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, fallback } from "viem";
 import { base } from "viem/chains";
 import { CdpClient } from "@coinbase/cdp-sdk";
 import { Attribution } from "ox/erc8021";
@@ -67,7 +67,14 @@ const ERC20_BALANCE_ABI = [{
   outputs: [{ name: "", type: "uint256" }],
 }] as const;
 
-const publicClient = createPublicClient({ chain: base, transport: http() });
+const publicClient = createPublicClient({
+  chain: base,
+  transport: fallback([
+    http("https://mainnet.base.org"),
+    http("https://base.llamarpc.com"),
+    http("https://base-rpc.publicnode.com"),
+  ]),
+});
 
 async function runPreflightChecks(config: any, agentAddress: string): Promise<{ ok: boolean; reason: string } > {
   const perm = config.spend_permission_json?.permission;
@@ -156,27 +163,43 @@ export async function POST(req: NextRequest) {
   }
 
   logSeparator("AGENT RUN START");
-  const signals = await scoreAllStocks();
   const { smartAccount, networkAccount, signerAddress } = await getAgentSmartAccount();
   const results = [];
 
+  // Run preflight checks first — skip expensive analysis if budget/permissions aren't ready
+  const validConfigs = [];
   for (const config of configs) {
-    try {
-      // ── Pre-flight checks ────────────────────────────────────────────────────
-      const preflight = await runPreflightChecks(config, signerAddress);
-      if (!preflight.ok) {
-        log(`[execute] preflight failed for ${config.wallet_address}: ${preflight.reason}`);
-        await recordActivity({
-          wallet_address: config.wallet_address,
-          type: "info",
-          title: "Agent skipped",
-          description: preflight.reason,
-          info: { body: preflight.reason },
-        });
-        results.push({ wallet: config.wallet_address, status: "skipped", reason: preflight.reason });
-        continue;
+    const preflight = await runPreflightChecks(config, signerAddress);
+    if (!preflight.ok) {
+      log(`[execute] preflight failed for ${config.wallet_address}: ${preflight.reason}`);
+
+      const isFatal = preflight.reason.includes("Budget exhausted") || preflight.reason.includes("revoked");
+      if (isFatal) {
+        await supabase.from("settings").update({ is_active: false }).eq("wallet_address", config.wallet_address);
+        log(`[execute] paused agent for ${config.wallet_address} — ${preflight.reason}`);
       }
 
+      await recordActivity({
+        wallet_address: config.wallet_address,
+        type: "info",
+        title: isFatal ? "Agent paused" : "Agent skipped",
+        description: preflight.reason,
+        info: { body: preflight.reason },
+      });
+      results.push({ wallet: config.wallet_address, status: "skipped", reason: preflight.reason });
+    } else {
+      validConfigs.push(config);
+    }
+  }
+
+  if (!validConfigs.length) {
+    return NextResponse.json({ ok: true, processed: configs.length, results });
+  }
+
+  const signals = await scoreAllStocks();
+
+  for (const config of validConfigs) {
+    try {
       const { buys } = getTradeDecisions(signals, config.daily_budget_usdc, config.daily_budget_usdc);
 
       if (!buys.length) {
