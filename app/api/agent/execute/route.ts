@@ -67,8 +67,7 @@ const ERC20_BALANCE_ABI = [{
   outputs: [{ name: "", type: "uint256" }],
 }] as const;
 
-const BASE_RPC = `https://api.developer.coinbase.com/rpc/v1/base/${process.env.CDP_API_KEY_ID}`;
-const publicClient = createPublicClient({ chain: base, transport: http(BASE_RPC) });
+const publicClient = createPublicClient({ chain: base, transport: http() });
 
 async function runPreflightChecks(config: any, agentAddress: string): Promise<{ ok: boolean; reason: string } > {
   const perm = config.spend_permission_json?.permission;
