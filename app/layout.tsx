@@ -27,6 +27,9 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Allign — AI-powered stock trading on Base",
   description: "Buy tokenized US stocks with AI. Available to non-US users on Base.",
+  other: {
+    "base:app_id": "6aa20b9a0043db0e3d505c69",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
