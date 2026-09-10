@@ -53,11 +53,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const QUICK_COMMANDS = [
+   "Buy $0.30 of NVIDIA",
+   "Tell me more about NVIDIA",
    "Show available stocks",
    "What's trending today?",
-   "What's declining today?",
    "Show my portfolio",
-   "What's Apple's price?",
    "Activate AI agent",
 ];
 
