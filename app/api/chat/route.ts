@@ -110,7 +110,9 @@ export async function POST(req: Request) {
               poolLiquidityUsdc: a.pool.usdc,
             };
           } catch (e: any) {
-            return { error: e.message ?? "Quote failed" };
+            const raw = e.message ?? "Quote failed";
+            const msg = raw.includes("402") ? "Quote service temporarily unavailable. Please try again shortly." : raw.slice(0, 120);
+            return { error: msg };
           }
         },
       }),

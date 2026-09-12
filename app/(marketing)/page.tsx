@@ -77,7 +77,7 @@ export default function LandingPage() {
                   </div>
                </div>
                <Link
-                  href="/app"
+                  href="/claim"
                   className="flex items-center gap-1.5 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold text-sm px-4 py-1.5 rounded-full transition-colors"
                >
                   Claim Gift <Gift size={13} />
@@ -107,7 +107,7 @@ export default function LandingPage() {
                style={{ animationDelay: "400ms" }}
             >
                <Link
-                  href="/app"
+                  href="/claim"
                   className="flex items-center gap-2 bg-white hover:bg-white/90 text-black font-bold px-12 py-3.5 rounded-xl text-lg transition-colors font-space-grotesk "
                >
                   Start investing

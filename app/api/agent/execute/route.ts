@@ -336,8 +336,9 @@ export async function POST(req: NextRequest) {
         results.push({ wallet: config.wallet_address, status: "skipped", reason: "all candidates failed" });
       }
     } catch (e: any) {
-      const msg = e?.message ?? "Unknown error";
-      console.error(`Agent execute error for ${config.wallet_address}:`, msg);
+      const raw = e?.message ?? "Unknown error";
+      console.error(`Agent execute error for ${config.wallet_address}:`, raw);
+      const msg = raw.length > 120 ? raw.slice(0, 120) + "…" : raw;
       await supabase.from("trades").insert({
         wallet_address: config.wallet_address,
         run_at: runAt,
