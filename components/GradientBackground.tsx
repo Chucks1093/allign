@@ -51,8 +51,8 @@ export function GradientBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 pointer-events-none"
-      style={{ zIndex: 0 }}
+      className="fixed inset-0"
+      style={{ zIndex: 0, pointerEvents: "none", touchAction: "none" }}
     />
   );
 }

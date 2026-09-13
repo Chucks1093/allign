@@ -1,5 +1,6 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Sidebar from "@/components/sidebar/Sidebar";
+import BottomNav from "@/components/sidebar/BottomNav";
 import ChatHeader from "@/components/chat/ChatHeader";
 
 export default function DashboardLayout({
@@ -10,7 +11,7 @@ export default function DashboardLayout({
    return (
       <TooltipProvider>
          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
+            <div className="hidden md:flex"><Sidebar /></div>
             <div
                className="flex flex-col flex-1 overflow-hidden relative"
                style={{
@@ -25,12 +26,13 @@ export default function DashboardLayout({
                />
                <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
                   <ChatHeader />
-                  <div className="flex-1 min-h-0 overflow-hidden">
+                  <div className="flex-1 min-h-0 overflow-hidden pb-[60px] md:pb-0">
                      {children}
                   </div>
                </div>
             </div>
          </div>
+         <BottomNav />
       </TooltipProvider>
    );
 }
