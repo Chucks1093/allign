@@ -7,13 +7,21 @@ const DATA_SUFFIX = Attribution.toDataSuffix({ codes: ["bc_fmbqk5r8"] });
 
 const STORAGE_KEY = "allign_wallet_address";
 
-// Pre-warm the SDK module so the dynamic import is already cached when the
-// user clicks Connect. iOS Safari kills popup permission after any non-trivial
-// await — if the import has to fetch the module at click time, window.open()
-// fires outside the user gesture and mobile opens keys.coinbase.com without
-// window.opener, causing the "Create" screen and broken connection flow.
+// Pre-create the provider at page load so connect() has zero async work before
+// the SDK calls window.open(). iOS Safari expires the user gesture context after
+// any non-trivial await — module import + createBaseAccountSDK + getProvider
+// would all run at click time otherwise, pushing window.open() outside the
+// gesture window and causing keys.coinbase.com to open without window.opener
+// (which shows the "Create" screen instead of connecting).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _prewarmedProvider: any = null;
 if (typeof window !== "undefined") {
-  import("@base-org/account").catch(() => {});
+  import("@base-org/account")
+    .then(({ createBaseAccountSDK }) => {
+      const sdk = createBaseAccountSDK({ appName: "Allign" });
+      _prewarmedProvider = sdk.getProvider();
+    })
+    .catch(() => {});
 }
 
 function getCachedAddress(): string | null {
@@ -37,12 +45,15 @@ const baseAccountConnector = createConnector((config) => ({
       return { accounts, chainId: base.id };
     }
 
-    // Fresh connect — open Base Account SDK popup
-    const { createBaseAccountSDK } = await import("@base-org/account");
-    const sdk = createBaseAccountSDK({ appName: "Allign" });
-    const provider = sdk.getProvider();
+    // Fresh connect — if provider is already pre-created, skip all awaits so
+    // the SDK's window.open() fires within the iOS Safari user gesture context.
+    // If pre-warm failed for any reason, fall back to the full async path.
+    if (!_prewarmedProvider) {
+      const { createBaseAccountSDK } = await import("@base-org/account");
+      _prewarmedProvider = createBaseAccountSDK({ appName: "Allign" }).getProvider();
+    }
 
-    const result = (await provider.request({
+    const result = (await _prewarmedProvider.request({
       method: "wallet_connect",
       params: [{ version: "1" }],
     })) as { accounts?: Array<{ address: string }> };
