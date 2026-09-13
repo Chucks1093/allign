@@ -7,6 +7,15 @@ const DATA_SUFFIX = Attribution.toDataSuffix({ codes: ["bc_fmbqk5r8"] });
 
 const STORAGE_KEY = "allign_wallet_address";
 
+// Pre-warm the SDK module so the dynamic import is already cached when the
+// user clicks Connect. iOS Safari kills popup permission after any non-trivial
+// await — if the import has to fetch the module at click time, window.open()
+// fires outside the user gesture and mobile opens keys.coinbase.com without
+// window.opener, causing the "Create" screen and broken connection flow.
+if (typeof window !== "undefined") {
+  import("@base-org/account").catch(() => {});
+}
+
 function getCachedAddress(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(STORAGE_KEY);
