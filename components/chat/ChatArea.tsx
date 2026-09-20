@@ -5,12 +5,93 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useAccount } from "wagmi";
 import { useSendCalls, useCallsStatus } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import EmptyChat from "./EmptyChat";
 import ChatMessages from "./ChatMessages";
 import BuyModal from "@/components/trade/BuyModal";
 import { STOCKS } from "@/lib/stocks/tokens";
 import type { Stock } from "@/lib/stocks/tokens";
 import { recordActivity } from "@/lib/agent/activity";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatePresence, motion } from "framer-motion";
+
+type SkeletonMsg = { id: number; type: "user" | "assistant"; widths: number[] };
+
+const USER_WIDTHS = [[44], [36], [52], [40]];
+const ASST_WIDTHS = [[64, 80, 52], [72, 56], [60, 76, 48], [68, 56], [55, 78, 44], [70, 58], [62, 80], [66, 74, 50]];
+let skeletonCounter = 0;
+
+function makeMsg(type: "user" | "assistant"): SkeletonMsg {
+  const id = skeletonCounter++;
+  const widths = type === "user"
+    ? USER_WIDTHS[id % USER_WIDTHS.length]
+    : ASST_WIDTHS[id % ASST_WIDTHS.length];
+  return { id, type, widths };
+}
+
+function ChatSkeleton() {
+  const [msgs, setMsgs] = useState<SkeletonMsg[]>([
+    makeMsg("user"),
+    makeMsg("assistant"),
+    makeMsg("user"),
+    makeMsg("assistant"),
+  ]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMsgs((prev) => {
+        const nextType = prev[prev.length - 1].type === "user" ? "assistant" : "user";
+        return [...prev.slice(-4), makeMsg(nextType)];
+      });
+    }, 1400);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex flex-col flex-1 h-full bg-transparent overflow-hidden">
+      <div className="flex-1 flex items-end justify-center overflow-hidden pb-6 pointer-events-none select-none">
+        <div className="w-full max-w-2xl mx-auto px-6 flex flex-col gap-6">
+          <AnimatePresence initial={false}>
+            {msgs.map((msg) =>
+              msg.type === "user" ? (
+                <motion.div
+                  key={msg.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ layout: { duration: 0.55, ease: [0.22, 1, 0.36, 1] }, opacity: { duration: 0.4 }, y: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } }}
+                  className="flex justify-end"
+                >
+                  <div className="h-10 bg-white/15 rounded-2xl rounded-br-sm" style={{ width: `${msg.widths[0] * 4}px` }} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={msg.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ layout: { duration: 0.55, ease: [0.22, 1, 0.36, 1] }, opacity: { duration: 0.4 }, y: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } }}
+                  className="flex flex-col gap-2.5"
+                >
+                  {msg.widths.map((w, wi) => (
+                    <div key={wi} className="h-3.5 bg-white/15 rounded-full" style={{ width: `${w * 4}px` }} />
+                  ))}
+                </motion.div>
+              )
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="shrink-0 px-4 pb-2 pt-2 flex justify-center">
+        <Skeleton className="w-full max-w-2xl h-14 rounded-full bg-white/15" />
+      </div>
+      <p className="text-center text-white/0 text-[11px] pb-3">.</p>
+    </div>
+  );
+}
 
 interface TradeModalState {
   stock: Stock;
@@ -25,6 +106,7 @@ export default function ChatArea() {
   const [input, setInput] = useState("");
   const [tradeModal, setTradeModal] = useState<TradeModalState | null>(null);
   const [isAgentActing, setIsAgentActing] = useState(false);
+  const [chatLoading, setChatLoading] = useState(true); // temp: always true to preview skeleton
   const [pendingTrade, setPendingTrade] = useState<{
     callsId: string;
     userText: string;
@@ -33,6 +115,7 @@ export default function ChatArea() {
     side: "buy" | "sell";
   } | null>(null);
 
+  const { authenticated } = usePrivy();
   const { address } = useAccount();
   const { sendCallsAsync } = useSendCalls();
   const { data: callsStatus } = useCallsStatus({
@@ -88,17 +171,16 @@ export default function ChatArea() {
   const hasMessages = messages.length > 0;
 
   // Load saved chat when wallet connects
-  useEffect(() => {
-    if (!address) return;
-    fetch(`/api/chats?wallet=${address.toLowerCase()}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data.messages) && data.messages.length > 0) {
-          setMessages(data.messages);
-        }
-      })
-      .catch(() => {});
-  }, [address]);
+  // useEffect(() => {
+  //   if (!authenticated) { setChatLoading(false); return; }
+  //   if (!address) return;
+  //   setChatLoading(true);
+  //   fetch(`/api/chats?wallet=${address.toLowerCase()}`)
+  //     .then((r) => r.json())
+  //     .then((data) => { if (Array.isArray(data.messages) && data.messages.length > 0) setMessages(data.messages); })
+  //     .catch(() => {})
+  //     .finally(() => setChatLoading(false));
+  // }, [address, authenticated]);
 
   // Auto-save when AI finishes responding
   const prevStatus = useRef(status);
@@ -279,6 +361,10 @@ export default function ChatArea() {
 
   function handleRejectAgent() {
     injectAssistantMessage("👍 No problem — let me know when you want to activate the agent.");
+  }
+
+  if (chatLoading) {
+    return <ChatSkeleton />;
   }
 
   return (

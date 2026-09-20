@@ -974,7 +974,7 @@ export default function ChatMessages({
    return (
       <div className="flex flex-col flex-1 overflow-hidden">
          <ScrollArea className="flex-1 min-h-0">
-            <div className="px-8 py-8 space-y-10 max-w-3xl mx-auto">
+            <div className="px-6 py-8 space-y-10 max-w-3xl mx-auto">
                {messages.map((msg) => {
                   if (msg.role === "user") {
                      const text = msg.parts
@@ -1135,7 +1135,7 @@ export default function ChatMessages({
                   onChange={(e) => onInputChange(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && onSend()}
                   placeholder="Ask me to buy NVIDIA, check your portfolio..."
-                  className="flex-1 bg-transparent text-white placeholder:text-white/30 text-base font-medium outline-none"
+                  className="flex-1 min-w-0 bg-transparent text-white placeholder:text-white/30 text-base font-medium outline-none"
                />
 
                <button

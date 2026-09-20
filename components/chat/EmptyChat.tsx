@@ -120,7 +120,7 @@ export default function EmptyChat({
                   onChange={(e) => onInputChange(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && onSend()}
                   placeholder="Ask me to buy NVIDIA, check your portfolio..."
-                  className="flex-1 bg-transparent text-white placeholder:text-white/30 text-base font-medium outline-none"
+                  className="flex-1 min-w-0 bg-transparent text-white placeholder:text-white/30 text-base font-medium outline-none"
                />
                <button
                   type="button"
