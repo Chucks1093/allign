@@ -3,7 +3,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider as Wagmi } from "wagmi";
 import { wagmiConfig } from "@/lib/wagmi";
-import PrivyProvider from "./PrivyProvider";
+import dynamic from "next/dynamic";
+const PrivyProvider = dynamic(() => import("./PrivyProvider"), { ssr: false });
 
 const queryClient = new QueryClient();
 
