@@ -1,18 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { PrivyProvider as Privy } from "@privy-io/react-auth";
 import AuthSync from "./AuthSync";
 
 export default function PrivyProvider({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return <>{children}</>;
-
   return (
     <Privy
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}

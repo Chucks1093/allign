@@ -87,8 +87,8 @@ export default function WalletDropdown() {
    const { login, ready, authenticated, user } = usePrivy();
    const { logout } = useLogout();
 
-   // user.wallet is available as soon as Privy is ready — no need to wait for useWallets
-   const address = wagmiAddress ?? (user?.wallet?.address as `0x${string}` | undefined);
+   // Privy's wallet address is authoritative — wagmiAddress from cache can be stale on first render
+   const address = (user?.wallet?.address as `0x${string}` | undefined) ?? wagmiAddress;
    const usdcBalance = useUsdcBalance(address);
 
    // Privy SDK not yet initialised
@@ -128,10 +128,10 @@ export default function WalletDropdown() {
 
    return (
       <DropdownMenu>
-         <DropdownMenuTrigger className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full pl-2 pr-4 py-2 transition-colors outline-none cursor-pointer">
+         <DropdownMenuTrigger className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full pl-2 md:pr-4 pr-2 py-2 transition-colors outline-none cursor-pointer">
             <Blockie address={address} size={26} badgeBorder="border-[2.7px]" />
-            <span className="text-sm text-white/60 font-medium">{display}</span>
-            <MoreHorizontal size={15} className="text-white/40 ml-0.5" />
+            <span className="hidden md:inline text-sm text-white/60 font-medium">{display}</span>
+            <MoreHorizontal size={15} className="hidden md:inline text-white/40 ml-0.5" />
          </DropdownMenuTrigger>
 
          <DropdownMenuContent
