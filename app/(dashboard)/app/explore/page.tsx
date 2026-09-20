@@ -27,6 +27,7 @@ export default function ExplorePage() {
 
   return (
     <ScrollArea className="h-full">
+      <div className="max-w-6xl mx-auto">
       {/* Marquee ticker strip */}
       {tickerItems.length > 0 && (
         <div
@@ -67,9 +68,9 @@ export default function ExplorePage() {
       )}
 
       {/* Strategy Baskets */}
-      <div className="px-8 pt-6 pb-2">
+      <div className="px-6 md:px-8 pt-6 pb-2">
         <h2 className="text-white font-semibold text-lg mb-4">Strategy Baskets</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {STRATEGIES.map((s) => {
             const realReturn = strategyReturns[s.id];
             const returnPct = realReturn ?? s.returnPct;
@@ -78,7 +79,7 @@ export default function ExplorePage() {
               <a
                 key={s.id}
                 href={`/app/strategy/${s.id}`}
-                className="relative rounded-2xl p-4 overflow-hidden cursor-pointer group bg-[#1a1a1a] hover:bg-[#222] transition-colors h-[160px] flex flex-col justify-between"
+                className="relative rounded-xl p-4 overflow-hidden cursor-pointer group bg-[#1a1a1a] hover:bg-[#222] border border-white/10 transition-colors h-[160px] flex flex-col justify-between"
               >
                 {/* Stock logos — large, greyed, bleeding off right edge */}
                 <div className="absolute -right-10 top-0 bottom-0 flex items-center">
@@ -143,8 +144,8 @@ export default function ExplorePage() {
                     )}
                     <p className="text-white/40 text-[10px] mt-1">1-year return</p>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shrink-0">
-                    <ChevronRight size={18} className="text-white" />
+                  <div className="w-11 h-11 md:w-10 md:h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shrink-0">
+                    <ChevronRight size={24} className="text-white" />
                   </div>
                 </div>
               </a>
@@ -155,7 +156,7 @@ export default function ExplorePage() {
 
       {/* Featured Stocks */}
       {!loading && !error && (
-        <div className="px-8 pt-6 pb-2">
+        <div className="px-6 md:px-8 pt-6 pb-2">
           <h2 className="text-white font-semibold text-lg mb-4">Featured Stocks</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[...stocks]
@@ -169,8 +170,8 @@ export default function ExplorePage() {
         </div>
       )}
 
-      <div className="px-8 py-8">
-        <div className="flex items-center justify-between mb-6">
+      <div className="px-6 md:px-8 py-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
           <div className="flex items-center gap-3">
             <h1 className="text-white text-2xl font-semibold shrink-0">All Stocks</h1>
             <button
@@ -182,7 +183,7 @@ export default function ExplorePage() {
               {refreshing ? "Refreshing…" : "Refresh"}
             </button>
           </div>
-          <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 w-72">
+          <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 w-full md:w-72">
             <Search size={14} className="text-white/30 shrink-0" />
             <input
               type="text"
@@ -210,15 +211,16 @@ export default function ExplorePage() {
         )}
 
         {!loading && !error && (
-          <div className="rounded-2xl overflow-hidden border border-white/[0.06] bg-[#111]">
+          <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#111]">
             {/* Table header */}
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-white/[0.06]">
+            <div className="grid grid-cols-[2fr_1fr_1fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-white/[0.06]">
               <span className="text-white/30 text-xs font-medium">Token</span>
               <span className="text-white/30 text-xs font-medium text-right">Price</span>
-              <span className="text-white/30 text-xs font-medium text-right">24H</span>
-              <span className="text-white/30 text-xs font-medium text-right">Market Cap</span>
-              <span className="text-white/30 text-xs font-medium text-right">Volume</span>
-              <span className="text-white/30 text-xs font-medium text-right">Age</span>
+              <span className="text-white/30 text-xs font-medium text-right hidden md:block">24H</span>
+              <span className="text-white/30 text-xs font-medium text-right hidden md:block">Market Cap</span>
+              <span className="text-white/30 text-xs font-medium text-right hidden md:block">Volume</span>
+              <span className="text-white/30 text-xs font-medium text-right hidden md:block">Age</span>
+              <span className="text-white/30 text-xs font-medium text-right">Status</span>
             </div>
 
             {/* Table rows */}
@@ -261,7 +263,7 @@ export default function ExplorePage() {
                   <a
                     key={data.stock.tokenTicker}
                     href={`/app/explore/${data.stock.tokenTicker}`}
-                    className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] items-center px-5 py-4 hover:bg-white/[0.03] transition-colors cursor-pointer ${idx < arr.length - 1 ? "border-b border-white/[0.04]" : ""}`}
+                    className={`grid grid-cols-[2fr_1fr_1fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center px-5 py-4 hover:bg-white/[0.03] transition-colors cursor-pointer ${idx < arr.length - 1 ? "border-b border-white/[0.04]" : ""}`}
                   >
                     {/* Token */}
                     <div className="flex items-center gap-3">
@@ -293,31 +295,50 @@ export default function ExplorePage() {
                     </p>
 
                     {/* 24H */}
-                    <p className={`text-sm font-medium text-right ${data.changePercent === undefined ? "text-white/30" : isUp ? "text-emerald-400" : "text-red-400"}`}>
+                    <p className={`hidden md:block text-sm font-medium text-right ${data.changePercent === undefined ? "text-white/30" : isUp ? "text-emerald-400" : "text-red-400"}`}>
                       {data.changePercent === undefined ? "—" : `${isUp ? "+" : ""}${data.changePercent}%`}
                     </p>
 
                     {/* Market Cap */}
                     {mcapDisplay === null ? (
-                      <div className="h-4 w-14 bg-white/10 rounded animate-pulse ml-auto" />
+                      <div className="hidden md:block h-4 w-14 bg-white/10 rounded animate-pulse ml-auto" />
                     ) : (
-                      <p className="text-white/60 text-sm text-right">{mcapDisplay}</p>
+                      <p className="hidden md:block text-white/60 text-sm text-right">{mcapDisplay}</p>
                     )}
 
                     {/* Volume */}
                     {volDisplay === null ? (
-                      <div className="h-4 w-14 bg-white/10 rounded animate-pulse ml-auto" />
+                      <div className="hidden md:block h-4 w-14 bg-white/10 rounded animate-pulse ml-auto" />
                     ) : (
-                      <p className="text-white/60 text-sm text-right">{volDisplay}</p>
+                      <p className="hidden md:block text-white/60 text-sm text-right">{volDisplay}</p>
                     )}
 
                     {/* Age */}
-                    <p className="text-white/50 text-sm text-right">{age}</p>
+                    <p className="hidden md:block text-white/50 text-sm text-right">{age}</p>
+
+                    {/* Status */}
+                    <div className="flex justify-end">
+                      {data.stock.tradable === false ? (
+                        <span className="inline-flex items-center gap-1.5 text-white/40 text-xs font-medium whitespace-nowrap">
+                          <span className="w-2 h-2 rounded-full bg-white/30 shrink-0" />
+                          Closed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-white/60 text-xs font-medium whitespace-nowrap">
+                          <span className="relative flex w-2 h-2 shrink-0">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />
+                            <span className="relative inline-flex w-2 h-2 rounded-full bg-green-400" />
+                          </span>
+                          Open
+                        </span>
+                      )}
+                    </div>
                   </a>
                 );
               })}
           </div>
         )}
+      </div>
       </div>
     </ScrollArea>
   );
