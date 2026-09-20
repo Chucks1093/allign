@@ -4,9 +4,12 @@ import { PrivyProvider as Privy } from "@privy-io/react-auth";
 import AuthSync from "./AuthSync";
 
 export default function PrivyProvider({ children }: { children: React.ReactNode }) {
+  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+  if (!appId) return <>{children}</>;
+
   return (
     <Privy
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
+      appId={appId}
       config={{
         loginMethods: ["email", "google", "wallet"],
         appearance: {
