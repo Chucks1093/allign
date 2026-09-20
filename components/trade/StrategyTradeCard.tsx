@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAccount, useSendCalls, useCallsStatus } from "wagmi";
-import { createPublicClient, http } from "viem";
-import { base } from "viem/chains";
+import { publicClient } from "@/lib/stocks/client";
 import { Loader2, CheckCircle2, AlertCircle, Lock } from "lucide-react";
 import type { Strategy } from "@/lib/stocks/strategies";
 import { STOCKS } from "@/lib/stocks/tokens";
@@ -12,7 +11,7 @@ import { USDC_ADDRESS, ERC20_ABI, USDC_DECIMALS } from "@/lib/0x/constants";
 type Tab = "Buy" | "Sell";
 type Status = "idle" | "signing" | "success" | "error";
 
-const MIN_BUY = 1;
+const MIN_BUY = 0.3;
 
 interface Props {
   strategy: Strategy;
@@ -35,8 +34,7 @@ export default function StrategyTradeCard({ strategy }: Props) {
 
   useEffect(() => {
     if (!address) return;
-    const pc = createPublicClient({ chain: base, transport: http() });
-    pc.readContract({ address: USDC_ADDRESS, abi: ERC20_ABI, functionName: "balanceOf", args: [address] })
+    publicClient.readContract({ address: USDC_ADDRESS, abi: ERC20_ABI, functionName: "balanceOf", args: [address] })
       .then((b) => setUsdcBalance(Number(b as bigint) / 10 ** USDC_DECIMALS))
       .catch(() => {});
   }, [address]);
@@ -108,7 +106,7 @@ export default function StrategyTradeCard({ strategy }: Props) {
   const holdingStocks = strategy.holdings.map((h) => STOCKS.find((s) => s.tokenTicker === h.ticker));
 
   return (
-    <div className="bg-[#1a1a1a] rounded-2xl p-5 flex flex-col gap-4 relative">
+    <div className="bg-[#181818] rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden border border-white/[0.06]">
 
       {/* Tab */}
       <div className="flex w-fit bg-white/5 rounded-lg p-0.5 mx-auto">
@@ -181,10 +179,10 @@ export default function StrategyTradeCard({ strategy }: Props) {
                       <span>{h.ticker}</span>
                       <span className="text-white/25">{h.weight}%</span>
                     </div>
-                    <div className="text-right text-white/40">
+                    <div className="text-right text-white/40 min-w-0 overflow-hidden">
                       <span className="text-white/60">${alloc.toFixed(2)}</span>
                       {quoting && <Loader2 size={9} className="animate-spin inline ml-1" />}
-                      {received && <span className="text-white/30 ml-1">≈ {received} {h.ticker}</span>}
+                      {received && <span className="text-white/30 ml-1 truncate">≈ {received} {h.ticker}</span>}
                     </div>
                   </div>
                 );

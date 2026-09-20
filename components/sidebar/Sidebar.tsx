@@ -15,11 +15,11 @@ import { useEffect } from "react";
 import SidebarNavItem from "./SidebarNavItem";
 
 const NAV_ITEMS = [
-   { icon: MessageCircle, label: "Chat", href: "/app" },
-   { icon: Globe, label: "Stocks", href: "/app/explore" },
-   { icon: BriefcaseBusiness, label: "Portfolio", href: "/app/portfolio" },
-   { icon: Gift, label: "Gifts", href: "/app/gift" },
-   { icon: Clock5, label: "Activity", href: "/app/activity" },
+   { icon: MessageCircle, label: "Chat", href: "/app", extraPaths: [] },
+   { icon: Globe, label: "Stocks", href: "/app/explore", extraPaths: ["/app/strategy"] },
+   { icon: BriefcaseBusiness, label: "Portfolio", href: "/app/portfolio", extraPaths: [] },
+   { icon: Gift, label: "Gifts", href: "/app/gift", extraPaths: [] },
+   { icon: Clock5, label: "Activity", href: "/app/activity", extraPaths: [] },
 ];
 
 interface SidebarProps {
@@ -79,6 +79,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
                      icon={item.icon}
                      label={item.label}
                      href={item.href}
+                     extraPaths={item.extraPaths}
                   />
                ))}
             </nav>

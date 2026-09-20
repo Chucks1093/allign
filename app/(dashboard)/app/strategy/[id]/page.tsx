@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import {
    AreaChart,
@@ -12,6 +11,7 @@ import {
    CartesianGrid,
 } from "recharts";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
+import Link from "next/link";
 import {
    Breadcrumb,
    BreadcrumbList,
@@ -77,13 +77,20 @@ export default function StrategyPage({
    params: Promise<{ id: string }>;
 }) {
    const { id } = use(params);
-   const router = useRouter();
    const strategy = STRATEGIES.find((s) => s.id === id);
    const { stocks } = useStockPrices();
 
    const [range, setRange] = useState<Range>("1M");
    const [points, setPoints] = useState<Point[]>([]);
    const [loadingChart, setLoadingChart] = useState(true);
+   const [isMobile, setIsMobile] = useState(false);
+
+   useEffect(() => {
+      const check = () => setIsMobile(window.innerWidth < 768);
+      check();
+      window.addEventListener("resize", check);
+      return () => window.removeEventListener("resize", check);
+   }, []);
 
    useEffect(() => {
       if (!strategy) return;
@@ -128,12 +135,12 @@ export default function StrategyPage({
 
    return (
       <ScrollArea className="h-full">
-         <div className="px-8 py-8 flex flex-col gap-6">
+         <div className="px-4 md:px-8 py-6 md:py-8 flex flex-col gap-6 max-w-6xl mx-auto">
             <Breadcrumb>
                <BreadcrumbList className="text-base">
                   <BreadcrumbItem>
                      <BreadcrumbLink
-                        render={<button onClick={() => router.back()} />}
+                        render={<Link href="/app/explore" />}
                         className="text-white/40 hover:text-white font-semibold cursor-pointer"
                      >
                         All Stocks
@@ -148,32 +155,32 @@ export default function StrategyPage({
                </BreadcrumbList>
             </Breadcrumb>
 
-            {/* Identity — outside the card, full width */}
-            <div className="flex items-center gap-4">
+            {/* Identity */}
+            <div className="flex flex-col gap-3">
                <div className="flex items-center">
                   {holdingStocks.slice(0, 7).map((h, i) =>
                      h.stock ? (
-                        <img key={h.ticker} src={h.stock.logo} alt={h.stock.name} width={44} height={44}
-                           className="rounded-full bg-white p-0.5 border-2 border-transparent"
-                           style={{ marginLeft: i === 0 ? 0 : -12, zIndex: i }} />
+                        <img key={h.ticker} src={h.stock.logo} alt={h.stock.name} width={48} height={48}
+                           className="rounded-full bg-white p-0.5 border-2 border-[#0e0e0e]"
+                           style={{ marginLeft: i === 0 ? 0 : -14, zIndex: i }} />
                      ) : null,
                   )}
                </div>
                <div>
-                  <h1 className="text-white text-2xl font-bold leading-tight">{strategy.name}</h1>
-                  <p className="text-white/40 text-sm mt-0.5">{strategy.tagline}</p>
+                  <h1 className="text-white text-2xl md:text-3xl font-bold leading-tight">{strategy.name}</h1>
+                  <p className="text-white/40 text-sm mt-1 leading-relaxed">{strategy.tagline}</p>
                </div>
             </div>
 
             {/* Two-column: left scrolls, right sticks */}
-            <div className="grid grid-cols-[1fr_340px] gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
 
             {/* LEFT */}
             <div className="flex flex-col gap-6 min-w-0">
 
             {/* Chart card */}
-            <div className="bg-[#181818] rounded-2xl p-5">
-               <div className="flex items-center justify-between mb-5">
+            <div className="bg-[#181818] rounded-xl p-4 md:p-5 border border-white/[0.06]">
+               <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                   <p
                      className={`flex items-center gap-1.5 text-sm font-medium ${isUp ? "text-green-400" : "text-red-400"}`}
                   >
@@ -186,7 +193,7 @@ export default function StrategyPage({
                         <button
                            key={r}
                            onClick={() => setRange(r)}
-                           className={`px-3.5 py-1 rounded-full text-sm font-medium transition-all cursor-pointer ${range === r ? "bg-[#3a3a3a] text-white shadow" : "text-white/40 hover:text-white/70"}`}
+                           className={`px-2.5 py-0.5 md:px-3.5 md:py-1 rounded-full text-xs md:text-sm font-medium transition-all cursor-pointer ${range === r ? "bg-[#3a3a3a] text-white shadow" : "text-white/40 hover:text-white/70"}`}
                         >
                            {r}
                         </button>
@@ -200,7 +207,7 @@ export default function StrategyPage({
                   <ChartContainer config={chartConfig} className="h-64 w-full">
                      <AreaChart
                         data={points}
-                        margin={{ top: 8, right: 4, left: 0, bottom: 20 }}
+                        margin={{ top: 8, right: 0, left: 0, bottom: 20 }}
                      >
                         <defs>
                            <linearGradient
@@ -241,18 +248,16 @@ export default function StrategyPage({
                            minTickGap={60}
                         />
                         <YAxis
+                           hide={isMobile}
                            orientation="right"
                            domain={[minV - pad, maxV + pad]}
                            allowDataOverflow
                            tickCount={6}
                            tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
-                           tick={{
-                              fill: "rgba(255,255,255,0.3)",
-                              fontSize: 11,
-                           }}
+                           tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }}
                            axisLine={false}
                            tickLine={false}
-                           width={55}
+                           width={45}
                         />
                         <Tooltip
                            contentStyle={{
@@ -288,10 +293,15 @@ export default function StrategyPage({
                )}
             </div>
 
+            {/* Trade card — mobile only, right after chart */}
+            <div className="block lg:hidden">
+               <StrategyTradeCard strategy={strategy} />
+            </div>
+
             {/* About */}
             <div className="space-y-3">
                <h2 className="text-white font-bold text-lg">About</h2>
-               <div className="bg-[#111] rounded-2xl p-5">
+               <div className="bg-[#181818] rounded-xl p-5 border border-white/[0.06]">
                   <p className="text-white font-semibold text-sm mb-2">
                      {strategy.name}
                   </p>
@@ -306,28 +316,20 @@ export default function StrategyPage({
                <h2 className="text-white text-2xl font-semibold mb-4">
                   Composition
                </h2>
-               <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#111]">
-                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr] px-5 py-3 border-b border-white/[0.06]">
-                     <span className="text-white/30 text-xs font-medium">
-                        Token
-                     </span>
-                     <span className="text-white/30 text-xs font-medium text-right">
-                        Weight
-                     </span>
-                     <span className="text-white/30 text-xs font-medium text-right">
-                        Price
-                     </span>
-                     <span className="text-white/30 text-xs font-medium text-right">
-                        24H
-                     </span>
+               <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#181818]">
+                  <div className="grid grid-cols-[2fr_1fr_1fr] md:grid-cols-[2fr_1fr_1fr_1fr] px-5 py-3 border-b border-white/[0.06]">
+                     <span className="text-white/30 text-xs font-medium">Token</span>
+                     <span className="text-white/30 text-xs font-medium text-right hidden md:block">Weight</span>
+                     <span className="text-white/30 text-xs font-medium text-right">Price</span>
+                     <span className="text-white/30 text-xs font-medium text-right">24H</span>
                   </div>
                   {holdingStocks.map((h, idx, arr) => {
                      const rowUp = (h.changePercent ?? 0) >= 0;
                      return (
-                        <a
+                        <Link
                            key={h.ticker}
                            href={`/app/explore/${h.ticker}`}
-                           className={`grid grid-cols-[2fr_1fr_1fr_1fr] items-center px-5 py-4 hover:bg-white/[0.03] transition-colors cursor-pointer ${idx < arr.length - 1 ? "border-b border-white/[0.04]" : ""}`}
+                           className={`grid grid-cols-[2fr_1fr_1fr] md:grid-cols-[2fr_1fr_1fr_1fr] items-center px-5 py-4 hover:bg-white/[0.03] transition-colors cursor-pointer ${idx < arr.length - 1 ? "border-b border-white/[0.04]" : ""}`}
                         >
                            <div className="flex items-center gap-3">
                               <div className="relative shrink-0">
@@ -355,7 +357,7 @@ export default function StrategyPage({
                                  </p>
                               </div>
                            </div>
-                           <p className="text-white/60 text-sm text-right">
+                           <p className="hidden md:block text-white/60 text-sm text-right">
                               {h.weight}%
                            </p>
                            <p className="text-white font-medium text-sm text-right">
@@ -380,7 +382,7 @@ export default function StrategyPage({
                                  "—"
                               )}
                            </p>
-                        </a>
+                        </Link>
                      );
                   })}
                </div>
@@ -388,8 +390,8 @@ export default function StrategyPage({
 
             </div>{/* end LEFT column */}
 
-            {/* RIGHT — sticky trade card */}
-            <div className="sticky top-8">
+            {/* RIGHT — sticky trade card, desktop only */}
+            <div className="hidden lg:block sticky top-8">
                <StrategyTradeCard strategy={strategy} />
             </div>
 

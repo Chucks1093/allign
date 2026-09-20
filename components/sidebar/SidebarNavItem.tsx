@@ -9,15 +9,20 @@ interface SidebarNavItemProps {
    icon: LucideIcon;
    label: string;
    href?: string;
+   extraPaths?: string[];
 }
 
 export default function SidebarNavItem({
    icon: Icon,
    label,
    href,
+   extraPaths = [],
 }: SidebarNavItemProps) {
    const pathname = usePathname();
-   const active = href ? pathname === href : false;
+   const active = href
+      ? (href === "/app" ? pathname === href : pathname.startsWith(href)) ||
+        extraPaths.some((p) => pathname.startsWith(p))
+      : false;
 
    const classes = cn(
       "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-lg transition-colors text-left cursor-pointer",

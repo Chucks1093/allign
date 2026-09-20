@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAccount, useSendCalls, useCallsStatus } from "wagmi";
-import { createPublicClient, http } from "viem";
-import { base } from "viem/chains";
+import { publicClient } from "@/lib/stocks/client";
 import { X, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
 import type { Stock } from "@/lib/stocks/tokens";
 import type { OzmiumQuoteResult } from "@/lib/stocks/ozmium";
@@ -44,13 +43,11 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
 
   useEffect(() => {
     if (!address) return;
-    const pc = createPublicClient({ chain: base, transport: http() });
-
-    pc.readContract({ address: USDC_ADDRESS, abi: ERC20_ABI, functionName: "balanceOf", args: [address] })
+    publicClient.readContract({ address: USDC_ADDRESS, abi: ERC20_ABI, functionName: "balanceOf", args: [address] })
       .then((b) => setUsdcBalance(Number(b as bigint) / 10 ** USDC_DECIMALS))
       .catch(() => {});
 
-    pc.readContract({ address: stock.contract, abi: ERC20_ABI, functionName: "balanceOf", args: [address] })
+    publicClient.readContract({ address: stock.contract, abi: ERC20_ABI, functionName: "balanceOf", args: [address] })
       .then((b) => setTokenBalance(Number(b as bigint) / 1e8))
       .catch(() => {});
   }, [address, stock.contract]);

@@ -3,6 +3,7 @@
 import { useStockPrices } from "@/hooks/useStockPrices";
 import StockCard from "@/components/stocks/StockCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import Link from "next/link";
 import { RefreshCw, TrendingUp, TrendingDown, ChevronRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { STRATEGIES } from "@/lib/stocks/strategies";
@@ -76,7 +77,7 @@ export default function ExplorePage() {
             const returnPct = realReturn ?? s.returnPct;
             const up = returnPct >= 0;
             return (
-              <a
+              <Link
                 key={s.id}
                 href={`/app/strategy/${s.id}`}
                 className="relative rounded-xl p-4 overflow-hidden cursor-pointer group bg-[#1a1a1a] hover:bg-[#222] border border-white/10 transition-colors h-[160px] flex flex-col justify-between"
@@ -148,7 +149,7 @@ export default function ExplorePage() {
                     <ChevronRight size={24} className="text-white" />
                   </div>
                 </div>
-              </a>
+              </Link>
             );
           })}
         </div>
@@ -260,7 +261,7 @@ export default function ExplorePage() {
                 const mcapDisplay = statsLoading ? null : formatUsd(tokenStat?.marketCap);
 
                 return (
-                  <a
+                  <Link
                     key={data.stock.tokenTicker}
                     href={`/app/explore/${data.stock.tokenTicker}`}
                     className={`grid grid-cols-[2fr_1fr_1fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr] items-center px-5 py-4 hover:bg-white/[0.03] transition-colors cursor-pointer ${idx < arr.length - 1 ? "border-b border-white/[0.04]" : ""}`}
@@ -333,7 +334,7 @@ export default function ExplorePage() {
                         </span>
                       )}
                     </div>
-                  </a>
+                  </Link>
                 );
               })}
           </div>
