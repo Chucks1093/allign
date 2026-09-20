@@ -197,9 +197,17 @@ export default function ExplorePage() {
         </div>
 
         {loading && (
-          <div className="space-y-2">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="bg-white/5 rounded-xl h-16 animate-pulse" />
+          <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#181818]">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className={`flex items-center gap-4 px-5 py-4 ${i < 7 ? "border-b border-white/[0.04]" : ""}`}>
+                <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="h-3.5 w-20 bg-white/10 rounded animate-pulse" />
+                  <div className="h-3 w-28 bg-white/5 rounded animate-pulse" />
+                </div>
+                <div className="h-4 w-16 bg-white/10 rounded animate-pulse" />
+                <div className="h-4 w-12 bg-white/10 rounded animate-pulse" />
+              </div>
             ))}
           </div>
         )}

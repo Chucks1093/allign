@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAccount } from "wagmi";
+import { usePrivy } from "@privy-io/react-auth";
 import { RefreshCw, Search } from "lucide-react";
+import Link from "next/link";
 import {
    AreaChart,
    Area,
@@ -39,6 +41,17 @@ interface Point {
 const RANGES = ["1D", "1W", "1M", "1Y"] as const;
 type Range = (typeof RANGES)[number];
 
+function PortfolioTooltip({ active, payload, label }: any) {
+   if (!active || !payload?.length) return null;
+   const date = new Date(label * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+   return (
+      <div className="bg-white rounded-xl px-3 py-2 shadow-xl text-[11px] leading-5">
+         <p className="text-gray-900"><span className="font-bold">Value</span> {fmt(payload[0].value)}</p>
+         <p className="text-gray-900"><span className="font-bold">Date</span> {date}</p>
+      </div>
+   );
+}
+
 function fmt(n: number) {
    return n.toLocaleString("en-US", {
       style: "currency",
@@ -71,20 +84,31 @@ async function fetchCombinedChart(
             .catch(() => ({ shares: h.shares, points: [] })),
       ),
    );
+
    const allTs = [
       ...new Set(results.flatMap((r) => r.points.map((p) => p.t))),
    ].sort((a, b) => a - b);
+
+   // O(H×P) pre-pass: one pointer per holding advances forward, never resets
+   const pointers = results.map(() => 0);
+
    return allTs.map((t) => {
       let total = 0;
-      for (const { shares, points } of results) {
-         const prev = points.filter((p) => p.t <= t);
-         if (prev.length > 0) total += prev[prev.length - 1].price * shares;
+      for (let h = 0; h < results.length; h++) {
+         const { shares, points } = results[h];
+         while (pointers[h] + 1 < points.length && points[pointers[h] + 1].t <= t) {
+            pointers[h]++;
+         }
+         if (points.length > 0 && points[pointers[h]].t <= t) {
+            total += points[pointers[h]].price * shares;
+         }
       }
       return { t, value: total };
    });
 }
 
 export default function PortfolioView() {
+   const { authenticated } = usePrivy();
    const { address } = useAccount();
    const [data, setData] = useState<PortfolioData | null>(null);
    const [loading, setLoading] = useState(true);
@@ -94,14 +118,20 @@ export default function PortfolioView() {
    const [chartPoints, setChartPoints] = useState<Point[]>([]);
    const [chartLoading, setChartLoading] = useState(false);
    const [search, setSearch] = useState("");
+   const [isMobile, setIsMobile] = useState(false);
+
+   useEffect(() => {
+      const check = () => setIsMobile(window.innerWidth < 768);
+      check();
+      window.addEventListener("resize", check);
+      return () => window.removeEventListener("resize", check);
+   }, []);
 
    const fetchPortfolio = useCallback(
       async (isRefresh = false) => {
-         if (!address) {
-            setLoading(false);
-            return;
-         }
+         if (!authenticated || !address) return;
          if (isRefresh) setRefreshing(true);
+         else setLoading(true);
          setError(null);
          try {
             const res = await fetch(`/api/portfolio?address=${address}`);
@@ -114,7 +144,7 @@ export default function PortfolioView() {
             setRefreshing(false);
          }
       },
-      [address],
+      [authenticated, address],
    );
 
    useEffect(() => {
@@ -129,21 +159,51 @@ export default function PortfolioView() {
          .finally(() => setChartLoading(false));
    }, [data, chartRange]);
 
-   if (!address) {
+   if (!authenticated) {
       return (
          <div className="h-full flex items-center justify-center">
-            <p className="text-white/40 text-sm">
-               Connect your wallet to view your portfolio
-            </p>
+            <p className="text-white/40 text-sm">Connect your wallet to view your portfolio</p>
          </div>
       );
    }
 
    if (loading) {
       return (
-         <div className="h-full px-8 py-8 space-y-4">
-            <div className="h-72 rounded-2xl bg-white/5 animate-pulse" />
-            <div className="h-64 rounded-2xl bg-white/5 animate-pulse" />
+         <div className="px-4 md:px-8 py-6 md:py-8 flex flex-col gap-6 max-w-6xl mx-auto">
+            {/* Logo stack + title */}
+            <div className="flex flex-col gap-3">
+               <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                     <div key={i} className="w-12 h-12 rounded-full bg-white/10 animate-pulse border-2 border-[#0e0e0e]" style={{ marginLeft: i === 0 ? 0 : -14 }} />
+                  ))}
+               </div>
+               <div className="space-y-2">
+                  <div className="h-7 w-40 bg-white/10 rounded-lg animate-pulse" />
+                  <div className="h-4 w-28 bg-white/5 rounded-lg animate-pulse" />
+               </div>
+            </div>
+            {/* Chart */}
+            <div className="bg-[#181818] rounded-xl p-4 md:p-5 border border-white/[0.06]">
+               <div className="flex items-center justify-between mb-5">
+                  <div className="h-4 w-36 bg-white/10 rounded animate-pulse" />
+                  <div className="h-8 w-36 bg-white/10 rounded-full animate-pulse" />
+               </div>
+               <div className="h-64 bg-white/5 rounded-xl animate-pulse" />
+            </div>
+            {/* Table */}
+            <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#181818]">
+               {[...Array(5)].map((_, i) => (
+                  <div key={i} className={`flex items-center gap-4 px-5 py-4 ${i < 4 ? "border-b border-white/[0.04]" : ""}`}>
+                     <div className="w-10 h-10 rounded-full bg-white/10 animate-pulse shrink-0" />
+                     <div className="flex-1 space-y-1.5">
+                        <div className="h-3.5 w-16 bg-white/10 rounded animate-pulse" />
+                        <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+                     </div>
+                     <div className="h-4 w-14 bg-white/10 rounded animate-pulse" />
+                     <div className="h-4 w-12 bg-white/10 rounded animate-pulse" />
+                  </div>
+               ))}
+            </div>
          </div>
       );
    }
@@ -168,12 +228,12 @@ export default function PortfolioView() {
             <p className="text-white/40 text-sm">
                No tokenized stocks in your wallet yet
             </p>
-            <a
+            <Link
                href="/app/explore"
                className="text-sm text-white/60 hover:text-white transition-colors"
             >
                Browse stocks →
-            </a>
+            </Link>
          </div>
       );
    }
@@ -191,64 +251,64 @@ export default function PortfolioView() {
    const color = isUp ? "#22c55e" : "#ef4444";
    const chartConfig: ChartConfig = { value: { label: "Value", color } };
 
-   const vals = chartPoints.map((p) => p.value);
-   const minV = vals.length ? Math.min(...vals) : 0;
-   const maxV = vals.length ? Math.max(...vals) : 0;
+   let minV = Infinity, maxV = -Infinity;
+   for (const p of chartPoints) {
+      if (p.value < minV) minV = p.value;
+      if (p.value > maxV) maxV = p.value;
+   }
+   if (!chartPoints.length) { minV = 0; maxV = 0; }
    const vRange = maxV - minV;
    const pad = vRange > 0 ? vRange * 0.005 : minV * 0.001;
 
    return (
       <ScrollArea className="h-full">
-         <div className="px-8 py-8 flex flex-col gap-6">
-            {/* Logo stack + total value — outside the card */}
-            <div className="flex items-center gap-4">
+         <div className="px-4 md:px-8 py-6 md:py-8 flex flex-col gap-6 max-w-6xl mx-auto">
+
+            {/* Logo stack + total value */}
+            <div className="flex flex-col gap-3">
                <div className="flex items-center">
                   {data.holdings.slice(0, 7).map((h, i) => {
-                     const stock = STOCKS.find(
-                        (s) => s.tokenTicker === h.tokenTicker,
-                     );
+                     const stock = STOCKS.find((s) => s.tokenTicker === h.tokenTicker);
                      return (
                         <img
                            key={h.tokenTicker}
                            src={stock?.logo ?? h.logo}
                            alt={h.name}
-                           width={40}
-                           height={40}
-                           className="rounded-full bg-white p-0.5 border-2 border-transparent"
-                           style={{ marginLeft: i === 0 ? 0 : -10, zIndex: i }}
+                           width={48}
+                           height={48}
+                           className="rounded-full bg-white p-0.5 border-2 border-[#0e0e0e]"
+                           style={{ marginLeft: i === 0 ? 0 : -14, zIndex: i }}
                         />
                      );
                   })}
                   {data.holdings.length > 7 && (
                      <div
-                        className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/60 font-semibold"
-                        style={{ marginLeft: -10, zIndex: 7 }}
+                        className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/60 font-semibold border-2 border-[#0e0e0e]"
+                        style={{ marginLeft: -14, zIndex: 7 }}
                      >
                         +{data.holdings.length - 7}
                      </div>
                   )}
                </div>
-               <p className="text-white text-2xl font-semibold font-montserrat">
-                  Total value ({fmt(data.totalValue)})
-               </p>
+               <div>
+                  <h1 className="text-white text-2xl md:text-3xl font-bold leading-tight">My Portfolio</h1>
+                  <p className="text-white/40 text-sm mt-1">{fmt(data.totalValue)} total value</p>
+               </div>
             </div>
 
             {/* Chart card */}
-            <div className="bg-[#181818] rounded-2xl p-5">
-               <div className="flex items-center justify-between mb-5">
-                  <p
-                     className={`flex items-center gap-1.5 text-sm font-medium ${isUp ? "text-green-400" : "text-red-400"}`}
-                  >
+            <div className="bg-[#181818] rounded-xl p-4 md:p-5 border border-white/[0.06]">
+               <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                  <p className={`flex items-center gap-1.5 text-sm font-medium ${isUp ? "text-green-400" : "text-red-400"}`}>
                      <span>{isUp ? "▲" : "▼"}</span>
-                     {fmt(Math.abs(totalChange))} ({isUp ? "+" : ""}
-                     {totalChangePercent.toFixed(2)}%) 24H
+                     {fmt(Math.abs(totalChange))} ({isUp ? "+" : ""}{totalChangePercent.toFixed(2)}%) 24H
                   </p>
                   <div className="flex items-center gap-0.5 bg-[#242424] rounded-full px-1.5 py-1.5 shrink-0">
                      {RANGES.map((r) => (
                         <button
                            key={r}
                            onClick={() => setChartRange(r)}
-                           className={`px-3.5 py-1 rounded-full text-sm font-medium transition-all cursor-pointer ${chartRange === r ? "bg-[#3a3a3a] text-white shadow" : "text-white/40 hover:text-white/70"}`}
+                           className={`px-2.5 py-0.5 md:px-3.5 md:py-1 rounded-full text-xs md:text-sm font-medium transition-all cursor-pointer ${chartRange === r ? "bg-[#3a3a3a] text-white shadow" : "text-white/40 hover:text-white/70"}`}
                         >
                            {r}
                         </button>
@@ -259,77 +319,38 @@ export default function PortfolioView() {
                   <div className="h-56 bg-white/5 animate-pulse rounded-xl" />
                ) : chartPoints.length > 1 ? (
                   <ChartContainer config={chartConfig} className="h-64 w-full">
-                     <AreaChart
-                        data={chartPoints}
-                        margin={{ top: 8, right: 4, left: 0, bottom: 20 }}
-                     >
+                     <AreaChart data={chartPoints} margin={{ top: 8, right: 0, left: 0, bottom: 20 }}>
                         <defs>
-                           <linearGradient
-                              id="portfolio-grad"
-                              x1="0"
-                              y1="0"
-                              x2="0"
-                              y2="1"
-                           >
-                              <stop
-                                 offset="5%"
-                                 stopColor={color}
-                                 stopOpacity={0.25}
-                              />
-                              <stop
-                                 offset="95%"
-                                 stopColor={color}
-                                 stopOpacity={0}
-                              />
+                           <linearGradient id="portfolio-grad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+                              <stop offset="95%" stopColor={color} stopOpacity={0} />
                            </linearGradient>
                         </defs>
-                        <CartesianGrid
-                           vertical={false}
-                           stroke="rgba(255,255,255,0.06)"
-                           strokeDasharray="5 5"
-                        />
+                        <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" strokeDasharray="4 4" />
                         <XAxis
                            dataKey="t"
                            tickFormatter={(t) => formatDate(t, chartRange)}
-                           tick={{
-                              fill: "rgba(255,255,255,0.3)",
-                              fontSize: 11,
-                              dy: 20,
-                           }}
+                           tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11, dy: 20 }}
                            axisLine={false}
                            tickLine={false}
                            interval="preserveStartEnd"
                            minTickGap={60}
                         />
                         <YAxis
+                           hide={isMobile}
                            orientation="right"
                            domain={[minV - pad, maxV + pad]}
                            allowDataOverflow
                            tickCount={5}
                            tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
-                           tick={{
-                              fill: "rgba(255,255,255,0.3)",
-                              fontSize: 11,
-                           }}
+                           tick={{ fill: "rgba(255,255,255,0.3)", fontSize: 11 }}
                            axisLine={false}
                            tickLine={false}
-                           width={55}
+                           width={45}
                         />
                         <Tooltip
-                           contentStyle={{
-                              background: "#1a1a1a",
-                              border: "1px solid rgba(255,255,255,0.1)",
-                              borderRadius: 12,
-                              color: "#fff",
-                              fontSize: 12,
-                           }}
-                           labelFormatter={(t) =>
-                              formatDate(t as number, chartRange)
-                           }
-                           formatter={(v) => [
-                              `$${Number(v).toFixed(2)}`,
-                              "Portfolio Value",
-                           ]}
+                           content={<PortfolioTooltip />}
+                           cursor={{ stroke: "rgba(255,255,255,0.2)", strokeWidth: 1, strokeDasharray: "4 4" }}
                         />
                         <Area
                            type="monotone"
@@ -338,6 +359,7 @@ export default function PortfolioView() {
                            strokeWidth={2}
                            fill="url(#portfolio-grad)"
                            dot={false}
+                           activeDot={{ r: 4, fill: color, stroke: "white", strokeWidth: 2 }}
                            isAnimationActive={false}
                         />
                      </AreaChart>
@@ -351,24 +373,19 @@ export default function PortfolioView() {
 
             {/* Holdings table */}
             <div>
-               <div className="flex items-center justify-between mb-6">
+               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
                   <div className="flex items-center gap-3">
-                     <h2 className="text-white text-2xl font-semibold shrink-0">
-                        Holdings
-                     </h2>
+                     <h2 className="text-white text-2xl font-semibold shrink-0">Holdings</h2>
                      <button
                         onClick={() => fetchPortfolio(true)}
                         disabled={refreshing}
                         className="flex items-center gap-1.5 text-white/40 hover:text-white text-xs bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                      >
-                        <RefreshCw
-                           size={12}
-                           className={refreshing ? "animate-spin" : ""}
-                        />
+                        <RefreshCw size={12} className={refreshing ? "animate-spin" : ""} />
                         {refreshing ? "Refreshing…" : "Refresh"}
                      </button>
                   </div>
-                  <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 w-72">
+                  <div className="flex items-center gap-2.5 bg-white/5 border border-white/10 rounded-full px-4 py-2 w-full md:w-72">
                      <Search size={14} className="text-white/30 shrink-0" />
                      <input
                         type="text"
@@ -380,14 +397,14 @@ export default function PortfolioView() {
                   </div>
                </div>
 
-               <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#111]">
+               <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#181818]">
                   {/* Header */}
-                  <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-white/[0.06]">
+                  <div className="grid grid-cols-[2fr_1fr_1fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-white/[0.06]">
                      <span className="text-white/30 text-xs font-medium">Token</span>
-                     <span className="text-white/30 text-xs font-medium text-right">Weight</span>
-                     <span className="text-white/30 text-xs font-medium text-right">Shares</span>
+                     <span className="text-white/30 text-xs font-medium text-right hidden md:block">Weight</span>
+                     <span className="text-white/30 text-xs font-medium text-right hidden md:block">Shares</span>
                      <span className="text-white/30 text-xs font-medium text-right">Value</span>
-                     <span className="text-white/30 text-xs font-medium text-right">Price</span>
+                     <span className="text-white/30 text-xs font-medium text-right hidden md:block">Price</span>
                      <span className="text-white/30 text-xs font-medium text-right">24H</span>
                   </div>
 
@@ -403,15 +420,13 @@ export default function PortfolioView() {
                         );
                      })
                      .map((h, idx, arr) => {
-                        const stock = STOCKS.find(
-                           (s) => s.tokenTicker === h.tokenTicker,
-                        );
+                        const stock = STOCKS.find((s) => s.tokenTicker === h.tokenTicker);
                         const rowUp = (h.changePercent ?? 0) >= 0;
                         return (
-                           <a
+                           <Link
                               key={h.ticker}
                               href={`/app/explore/${h.tokenTicker}`}
-                              className={`grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] items-center px-5 py-4 hover:bg-white/[0.03] transition-colors cursor-pointer ${idx < arr.length - 1 ? "border-b border-white/[0.04]" : ""}`}
+                              className={`grid grid-cols-[2fr_1fr_1fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] items-center px-5 py-4 hover:bg-white/[0.03] transition-colors cursor-pointer ${idx < arr.length - 1 ? "border-b border-white/[0.04]" : ""}`}
                            >
                               <div className="flex items-center gap-3">
                                  <div className="relative shrink-0">
@@ -427,42 +442,28 @@ export default function PortfolioView() {
                                        alt="Base"
                                        width={13}
                                        height={13}
-                                       className="absolute -bottom-0.5 -right-0.5 rounded border-[2px] border-[#111]"
+                                       className="absolute -bottom-0.5 -right-0.5 rounded border-[2px] border-[#181818]"
                                     />
                                  </div>
                                  <div>
-                                    <p className="text-white font-semibold text-sm leading-tight">
-                                       {h.ticker}
-                                    </p>
-                                    <p className="text-white/40 text-xs mt-0.5">
-                                       {h.name}
-                                    </p>
+                                    <p className="text-white font-semibold text-sm leading-tight">{h.ticker}</p>
+                                    <p className="text-white/40 text-xs mt-0.5">{h.name}</p>
                                  </div>
                               </div>
-                              <p className="text-white/60 text-sm text-right">
+                              <p className="hidden md:block text-white/60 text-sm text-right">
                                  {data.totalValue > 0 ? ((h.value / data.totalValue) * 100).toFixed(2) : "0.00"}%
                               </p>
-                              <p className="text-white/60 text-sm text-right">
+                              <p className="hidden md:block text-white/60 text-sm text-right">
                                  {h.shares.toFixed(6)}
                               </p>
-                              <p className="text-white font-medium text-sm text-right">
-                                 {fmt(h.value)}
+                              <p className="text-white font-medium text-sm text-right">{fmt(h.value)}</p>
+                              <p className="hidden md:block text-white font-medium text-sm text-right">
+                                 ${h.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </p>
-                              <p className="text-white font-medium text-sm text-right">
-                                 $
-                                 {h.price.toLocaleString("en-US", {
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                 })}
+                              <p className={`text-sm font-medium text-right ${h.changePercent !== undefined ? (rowUp ? "text-emerald-400" : "text-red-400") : "text-white/30"}`}>
+                                 {h.changePercent !== undefined ? `${rowUp ? "+" : ""}${h.changePercent.toFixed(2)}%` : "—"}
                               </p>
-                              <p
-                                 className={`text-sm font-medium text-right ${h.changePercent !== undefined ? (rowUp ? "text-emerald-400" : "text-red-400") : "text-white/30"}`}
-                              >
-                                 {h.changePercent !== undefined
-                                    ? `${rowUp ? "+" : ""}${h.changePercent.toFixed(2)}%`
-                                    : "—"}
-                              </p>
-                           </a>
+                           </Link>
                         );
                      })}
                </div>
