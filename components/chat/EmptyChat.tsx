@@ -1,6 +1,7 @@
 "use client";
 
-import { Send, Plus } from "lucide-react";
+import { Send, Plus, TrendingUp, Brain, BarChart2, Gift, Layers } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { STOCKS } from "@/lib/stocks/tokens";
 import {
@@ -9,6 +10,33 @@ import {
    DropdownMenuItem,
    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const CAPABILITY_CARDS = [
+   {
+      icon: TrendingUp,
+      title: "Buy US Stocks",
+      desc: "Buy any tokenized stock on Base with USDC",
+      prompt: "Show available stocks",
+   },
+   {
+      icon: Brain,
+      title: "AI Trading Agent",
+      desc: "Let AI trade automatically on your behalf",
+      prompt: "Activate AI agent",
+   },
+   {
+      icon: BarChart2,
+      title: "Market Trends",
+      desc: "See what's trending and declining today",
+      prompt: "What's trending today?",
+   },
+   {
+      icon: Layers,
+      title: "My Portfolio",
+      desc: "View your current holdings and performance",
+      prompt: "Show my portfolio",
+   },
+];
 
 const QUICK_COMMANDS = [
    "Show available stocks",
@@ -66,34 +94,64 @@ export default function EmptyChat({
    const items = tickers.length > 0 ? [...tickers, ...tickers] : [];
 
    return (
-      <div className="flex flex-col flex-1 h-full relative bottom-12">
+      <div className="flex flex-col flex-1 h-full">
          {/* Centered content */}
-         <div className="flex flex-col flex-1 items-center justify-center gap-6 px-4 ">
-            <h1 className="text-white text-4xl font-bold tracking-tight text-center font-manrope">
-               Buy US stocks onchain with AI
+         <div className="flex flex-col flex-1 items-center justify-center gap-6 px-4 relative bottom-10">
+            <div className="flex items-center gap-2.5">
+               <div className="w-9 h-9 rounded-md bg-white/90 flex items-center justify-center shrink-0">
+                  <Image src="/logo.svg" alt="Allign" width={22} height={22} className="invert" />
+               </div>
+               <span className="font-montserrat text-white/90 font-semibold text-[1.6rem] tracking-tight">Allign</span>
+            </div>
+
+            <h1 className="text-white text-3xl md:text-4xl font-semibold tracking-tight text-center font-manrope">
+               Trade smartly with An Agent
             </h1>
 
-            <div className="flex flex-wrap items-center justify-center gap-2">
-               {[
-                  "Show available stocks",
-                  "What's trending today?",
-                  "What's declining today?",
-                  "Show my portfolio",
-                  "Activate AI agent",
-               ].map((cmd) => (
+            {/* Desktop: 2x2 grid */}
+            <div className="hidden md:grid grid-cols-2 gap-3 w-full max-w-2xl">
+               {CAPABILITY_CARDS.map(({ icon: Icon, title, desc, prompt }) => (
                   <button
-                     key={cmd}
+                     key={title}
                      type="button"
-                     onClick={() => {
-                        onInputChange(cmd);
-                     }}
-                     className="text-sm text-white/60 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 px-4 py-2 rounded-full transition-all cursor-pointer"
+                     onClick={() => onInputChange(prompt)}
+                     className="flex flex-col gap-2 text-left bg-[#161616] hover:bg-[#1e1e1e] border border-white/10 hover:border-white/20 rounded-lg p-4 transition-all cursor-pointer group"
                   >
-                     {cmd}
+                     <div className="w-8 h-8 rounded-lg bg-white/10 group-hover:bg-white/15 flex items-center justify-center transition-colors mb-2">
+                        <Icon size={24} className="text-white/70" />
+                     </div>
+                     <div>
+                        <p className="text-white text-base font-semibold leading-tight">{title}</p>
+                        <p className="text-white/40 text-sm mt-0.5 leading-snug">{desc}</p>
+                     </div>
                   </button>
                ))}
             </div>
 
+            {/* Mobile: horizontal scroll carousel */}
+            <div className="md:hidden w-full overflow-x-auto flex gap-3 pb-1 snap-x snap-mandatory scrollbar-hide px-4">
+               {CAPABILITY_CARDS.map(({ icon: Icon, title, desc, prompt }) => (
+                  <button
+                     key={title}
+                     type="button"
+                     onClick={() => onInputChange(prompt)}
+                     className="flex flex-col gap-2 text-left bg-[#161616] border border-white/10 rounded-lg p-4 transition-all cursor-pointer shrink-0 w-[60vw] snap-start"
+                  >
+                     <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-2">
+                        <Icon size={24} className="text-white/70" />
+                     </div>
+                     <div>
+                        <p className="text-white text-base font-semibold leading-tight">{title}</p>
+                        <p className="text-white/40 text-sm mt-0.5 leading-snug">{desc}</p>
+                     </div>
+                  </button>
+               ))}
+            </div>
+
+         </div>
+
+         {/* Input pinned to bottom */}
+         <div className="shrink-0 px-4 pb-2 pt-2 flex justify-center">
             <div className="w-full max-w-2xl bg-[#272727] rounded-full pl-2 pr-2 py-2 flex items-center gap-3">
                <DropdownMenu>
                   <DropdownMenuTrigger className="flex items-center justify-center shrink-0 cursor-pointer text-white/50 hover:text-white transition-colors pl-2">
@@ -131,9 +189,8 @@ export default function EmptyChat({
                   <Send size={14} className="text-black" />
                </button>
             </div>
-
-            <p className="text-white/60 text-[11px] -mt-4">Available to eligible non-US users only</p>
          </div>
+         <p className="text-center text-white/60 text-[11px] pb-3">Available to eligible non-US users only</p>
       </div>
    );
 }

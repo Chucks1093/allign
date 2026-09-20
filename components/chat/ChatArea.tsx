@@ -106,7 +106,7 @@ export default function ChatArea() {
   const [input, setInput] = useState("");
   const [tradeModal, setTradeModal] = useState<TradeModalState | null>(null);
   const [isAgentActing, setIsAgentActing] = useState(false);
-  const [chatLoading, setChatLoading] = useState(true); // temp: always true to preview skeleton
+  const [chatLoading, setChatLoading] = useState(false); // temp: show empty state
   const [pendingTrade, setPendingTrade] = useState<{
     callsId: string;
     userText: string;
