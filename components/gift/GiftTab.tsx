@@ -28,25 +28,25 @@ export const GIFT_STICKERS: Record<number, string> = {
 };
 
 const CARD_COLORS = [
-   "#E8D5FF",
-   "#FFD6E8",
-   "#FFF5A3",
-   "#D6F0FF",
-   "#FFE4CC",
-   "#D6FFE8",
-   "#F5D6FF",
-   "#FFD6D6",
-   "#D6EDFF",
-   "#FFEFD6",
-   "#E8FFD6",
-   "#FFD6F5",
-   "#D6FFF5",
-   "#F5FFD6",
-   "#FFD6E0",
-   "#D6D6FF",
-   "#FFF0D6",
-   "#D6FFE0",
-   "#FFD6EC",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
+   "#2a2a2a",
    "#E0D6FF",
 ];
 
@@ -207,8 +207,7 @@ export default function GiftTab({
                   <button
                      key={id}
                      onClick={() => openModal(id, color)}
-                     style={{ backgroundColor: color }}
-                     className="rounded-2xl p-4 flex items-center justify-center cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-transform shadow-sm aspect-square"
+                     className="rounded-2xl p-4 flex items-center justify-center cursor-pointer hover:scale-[1.03] active:scale-[0.98] transition-transform aspect-square bg-[#161616] border border-white/[0.06] hover:border-white/[0.12] shadow-sm"
                   >
                      <img
                         src={url}
@@ -253,8 +252,7 @@ export default function GiftTab({
                         <div className="space-y-4 py-2">
                            <div className="flex flex-col items-center gap-4 py-4">
                               <div
-                                 className="w-20 h-20 rounded-2xl flex items-center justify-center"
-                                 style={{ backgroundColor: activeColor }}
+                                 className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#161616] border border-white/[0.06]"
                               >
                                  <img
                                     src={GIFT_STICKERS[activeId]}
@@ -301,8 +299,7 @@ export default function GiftTab({
                            {/* Sticker preview */}
                            <div className="flex justify-center pt-1">
                               <div
-                                 className="w-24 h-24 rounded-2xl flex items-center justify-center"
-                                 style={{ backgroundColor: activeColor }}
+                                 className="w-24 h-24 rounded-2xl flex items-center justify-center bg-[#161616] border border-white/[0.06]"
                               >
                                  <img
                                     src={GIFT_STICKERS[activeId]}

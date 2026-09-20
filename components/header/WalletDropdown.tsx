@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import makeBlockie from "ethereum-blockies-base64";
-import { useAccount, useDisconnect } from "wagmi";
-import { useConnectBaseWallet } from "@/hooks/useConnectBaseWallet";
+import { useAccount } from "wagmi";
+import { usePrivy, useLogout } from "@privy-io/react-auth";
 import { createPublicClient, http, erc20Abi } from "viem";
 import { base } from "viem/chains";
 
@@ -28,6 +28,7 @@ function useUsdcBalance(address?: string) {
 
    return balance;
 }
+
 import {
    DropdownMenu,
    DropdownMenuContent,
@@ -42,7 +43,6 @@ import {
    Copy,
    Wallet,
    Loader2,
-   ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
 import toast from "react-hot-toast";
@@ -82,24 +82,44 @@ function shortAddress(addr: string) {
 }
 
 export default function WalletDropdown() {
-   const { address, isConnected } = useAccount();
-   const { disconnect } = useDisconnect();
-   const { connect, isConnecting } = useConnectBaseWallet();
+   // wagmiAddress is set after AuthSync bridges the Privy wallet to wagmi
+   const { address: wagmiAddress } = useAccount();
+   const { login, ready, authenticated, user } = usePrivy();
+   const { logout } = useLogout();
+
+   // user.wallet is available as soon as Privy is ready — no need to wait for useWallets
+   const address = wagmiAddress ?? (user?.wallet?.address as `0x${string}` | undefined);
    const usdcBalance = useUsdcBalance(address);
 
-   if (!isConnected || !address) {
+   // Privy SDK not yet initialised
+   if (!ready) {
+      return (
+         <button disabled className="flex items-center gap-2 bg-[#1c1c1c] rounded-full px-4 py-2 text-sm text-white/40 font-medium cursor-not-allowed">
+            <Loader2 size={15} className="animate-spin" />
+            Loading…
+         </button>
+      );
+   }
+
+   // Not logged in
+   if (!authenticated) {
       return (
          <button
-            onClick={connect}
-            disabled={isConnecting}
-            className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full px-4 py-2 text-sm text-white/70 font-medium transition-colors cursor-pointer disabled:opacity-50"
+            onClick={login}
+            className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full px-4 py-2 text-sm text-white/70 font-medium transition-colors cursor-pointer"
          >
-            {isConnecting ? (
-               <Loader2 size={15} className="animate-spin text-white/50" />
-            ) : (
-               <Wallet size={15} className="text-white/50" />
-            )}
-            {isConnecting ? "Connecting…" : "Connect Wallet"}
+            <Wallet size={15} className="text-white/50" />
+            Connect
+         </button>
+      );
+   }
+
+   // Authenticated but embedded wallet still being created
+   if (!address) {
+      return (
+         <button disabled className="flex items-center gap-2 bg-[#1c1c1c] rounded-full px-4 py-2 text-sm text-white/40 font-medium cursor-not-allowed">
+            <Loader2 size={15} className="animate-spin" />
+            Loading…
          </button>
       );
    }
@@ -124,9 +144,7 @@ export default function WalletDropdown() {
                <div>
                   <p className="text-sm font-semibold text-white">{display}</p>
                   <p className="text-xs text-white/50 mt-0.5">
-                     {usdcBalance !== null
-                        ? `$${usdcBalance} USDC`
-                        : "Base Mainnet"}
+                     {usdcBalance !== null ? `$${usdcBalance} USDC` : "Base Mainnet"}
                   </p>
                </div>
             </div>
@@ -142,24 +160,6 @@ export default function WalletDropdown() {
                Copy Address
             </DropdownMenuItem>
 
-            <DropdownMenuItem
-               onClick={() => {
-                  const w = 460,
-                     h = 600;
-                  const left = window.screenX + (window.innerWidth - w) / 2;
-                  const top = window.screenY + (window.innerHeight - h) / 2;
-                  window.open(
-                     "https://keys.coinbase.com",
-                     "CoinbaseWallet",
-                     `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`,
-                  );
-               }}
-               className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10 cursor-pointer focus:bg-white/10 focus:text-white"
-            >
-               <ExternalLink size={16} className="text-white/50" />
-               Open Wallet
-            </DropdownMenuItem>
-
             <DropdownMenuItem className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:text-white hover:bg-white/10 cursor-pointer focus:bg-white/10 focus:text-white">
                <EyeOff size={16} className="text-white/50" />
                Hide Balances
@@ -168,7 +168,7 @@ export default function WalletDropdown() {
             <DropdownMenuSeparator className="bg-white/10 my-1" />
 
             <DropdownMenuItem
-               onClick={() => disconnect()}
+               onClick={() => logout()}
                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 cursor-pointer focus:bg-red-500/10 focus:text-red-300"
             >
                <LogOut size={16} />

@@ -19,6 +19,7 @@ scripts/test-buy.mjs
 # next.js
 /.next/
 /out/
+/.secrets
 
 # production
 /build

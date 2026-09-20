@@ -8,9 +8,16 @@ export default function PrivyProvider({ children }: { children: React.ReactNode 
     <Privy
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
       config={{
+        loginMethods: ["email", "google", "wallet"],
         appearance: {
-          theme: "dark",
-          accentColor: "#ffffff",
+          theme: "light",
+          accentColor: "#0052ff",
+          logo: "http://localhost:3000/logo-privy.svg",
+        },
+        embeddedWallets: {
+          ethereum: {
+            createOnLogin: "users-without-wallets",
+          },
         },
         defaultChain: {
           id: 8453,
