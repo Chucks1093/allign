@@ -117,7 +117,7 @@ export default function EmptyChat({
                      onClick={() => onInputChange(prompt)}
                      className="flex flex-col gap-2 text-left bg-[#161616] hover:bg-[#1e1e1e] border border-white/10 hover:border-white/20 rounded-lg p-4 transition-all cursor-pointer group"
                   >
-                     <div className="w-8 h-8 rounded-lg bg-white/10 group-hover:bg-white/15 flex items-center justify-center transition-colors mb-2">
+                     <div className="w-10 h-10 rounded-lg bg-white/10 group-hover:bg-white/15 flex items-center justify-center transition-colors mb-2">
                         <Icon size={24} className="text-white/70" />
                      </div>
                      <div>
@@ -137,7 +137,7 @@ export default function EmptyChat({
                      onClick={() => onInputChange(prompt)}
                      className="flex flex-col gap-2 text-left bg-[#161616] border border-white/10 rounded-lg p-4 transition-all cursor-pointer shrink-0 w-[60vw] snap-start"
                   >
-                     <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center mb-2">
+                     <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center mb-2">
                         <Icon size={24} className="text-white/70" />
                      </div>
                      <div>
