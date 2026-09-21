@@ -208,27 +208,27 @@ function InfoModal({ info }: { info: InfoInfo }) {
 
 function ActionBadge({ type }: { type: ActivityType }) {
   if (type === "buy") return (
-    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-[#1a1a1a]">
+    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center border-2 border-[#181818]">
       <ArrowDownLeft size={10} className="text-black" strokeWidth={3} />
     </div>
   );
   if (type === "sell") return (
-    <div className="w-5 h-5 rounded-full bg-orange-400 flex items-center justify-center border-2 border-[#1a1a1a]">
+    <div className="w-5 h-5 rounded-full bg-orange-400 flex items-center justify-center border-2 border-[#181818]">
       <ArrowUpRight size={10} className="text-black" strokeWidth={3} />
     </div>
   );
   if (type === "gift") return (
-    <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center border-2 border-[#1a1a1a]">
+    <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center border-2 border-[#181818]">
       <Gift size={9} className="text-white" strokeWidth={2.5} />
     </div>
   );
   if (type === "error") return (
-    <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border-2 border-[#1a1a1a]">
+    <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center border-2 border-[#181818]">
       <AlertCircle size={10} className="text-white" strokeWidth={3} />
     </div>
   );
   return (
-    <div className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center border-2 border-[#1a1a1a]">
+    <div className="w-5 h-5 rounded-full bg-white/15 flex items-center justify-center border-2 border-[#181818]">
       <Info size={9} className="text-white/60" strokeWidth={2.5} />
     </div>
   );
@@ -278,7 +278,7 @@ export function ActivityRow({ entry }: { entry: Activity }) {
   );
 
   const rowInner = (
-    <div className={`grid grid-cols-[1fr_auto_auto] items-center px-5 py-4 gap-6 transition-colors ${isClickable ? "hover:bg-white/[0.02] cursor-pointer" : ""}`}>
+    <div className={`grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_auto] items-center px-5 py-4 gap-4 md:gap-6 transition-colors ${isClickable ? "hover:bg-white/[0.02] cursor-pointer" : ""}`}>
       {/* Action */}
       <div className="flex items-center gap-3 min-w-0">
         <div className="relative shrink-0">
@@ -307,8 +307,8 @@ export function ActivityRow({ entry }: { entry: Activity }) {
         )}
       </div>
 
-      {/* Date */}
-      <div className="text-right w-28">
+      {/* Date — desktop only */}
+      <div className="hidden md:block text-right w-28">
         <p className="text-sm text-white/60">{date}</p>
         <p className="text-xs text-white/30 mt-0.5">{time}</p>
       </div>

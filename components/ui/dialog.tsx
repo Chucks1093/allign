@@ -35,7 +35,7 @@ function DialogContent({ className, children, ...props }: DialogPrimitive.Popup.
       <DialogBackdrop />
       <DialogPrimitive.Popup
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl outline-none",
+          "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl outline-none",
           "data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95",
           "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
