@@ -11,8 +11,9 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import SidebarNavItem from "./SidebarNavItem";
+import GiftOverlay from "@/components/gift/GiftOverlay";
 
 const NAV_ITEMS = [
    { icon: MessageCircle, label: "Chat", href: "/app", extraPaths: [] },
@@ -29,6 +30,7 @@ interface SidebarProps {
 
 export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
    const pathname = usePathname();
+   const [giftOpen, setGiftOpen] = useState(false);
 
    // Close on route change (mobile)
    useEffect(() => { onMobileClose?.(); }, [pathname]);
@@ -93,15 +95,17 @@ export default function Sidebar({ mobileOpen = false, onMobileClose }: SidebarPr
                   <p className="text-sm text-white/50 leading-relaxed mb-6">
                      Send stocks as gifts to anyone instantly.
                   </p>
-                  <Link
-                     href="/app/gift"
-                     className="w-full flex items-center justify-center text-xs font-semibold bg-white/80 hover:bg-white/90 text-black py-2 rounded-xl transition-colors"
+                  <button
+                     onClick={() => setGiftOpen(true)}
+                     className="w-full flex items-center justify-center text-xs font-semibold bg-white/80 hover:bg-white/90 text-black py-2 rounded-xl transition-colors cursor-pointer"
                   >
                      Gift a Stock
-                  </Link>
+                  </button>
                </div>
             </div>
          </aside>
+
+         {giftOpen && <GiftOverlay onClose={() => setGiftOpen(false)} />}
       </>
    );
 }
