@@ -74,7 +74,6 @@ export default function AgentStatusBadge() {
     }
   }
 
-  // Only show if wallet connected, agent configured, manually active, permission active on-chain, and budget not exhausted
   if (!address || !config || !config.is_active) return null;
   if (permStatus && (!permStatus.isActive || permStatus.remainingSpend === 0n)) return null;
 
@@ -84,48 +83,46 @@ export default function AgentStatusBadge() {
     ? BigInt(config.spend_permission_json.permission.allowance)
     : BigInt(Math.round(config.daily_budget_usdc * 1_000_000));
   const spent = permStatus?.currentPeriod?.spend ?? 0n;
-  const statusDot = isExpired ? "bg-red-400" : isActive ? "bg-[#a8ff78]" : "bg-yellow-400";
 
   return (
     <Popover>
-      <PopoverTrigger className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full pl-2 pr-4 py-2 transition-colors outline-none cursor-pointer">
-        {/* Brain + Allign logo badge */}
-        <div className="relative shrink-0 w-[34px] h-[34px]">
-          <div className="w-[34px] h-[34px] rounded-full bg-white/10 flex items-center justify-center">
+      <PopoverTrigger className="flex items-center gap-2 bg-[#1c1c1c] hover:bg-[#2a2a2a] rounded-full pl-2 md:pr-4 pr-2 py-0 h-[42px] transition-colors outline-none cursor-pointer">
+        <div className="relative shrink-0 w-[26px] h-[26px]">
+          <div className="w-[26px] h-[26px] rounded-full bg-white/10 flex items-center justify-center">
             <Brain size={18} className="text-white" />
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-[16px] h-[16px] rounded bg-white/90 border-[2px] border-[#1c1c1c] flex items-center justify-center">
-            <img src="/logo.svg" alt="Allign" className="w-2.5 h-2.5 invert" />
-          </div>
+          <span className="absolute -bottom-0.5 -right-0.5">
+            <span className="relative flex w-2 h-2">
+              {isActive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60" />}
+              <span className={`relative inline-flex w-2 h-2 rounded-full ring-[2px] ring-[#1c1c1c] ${isExpired ? "bg-red-400" : isActive ? "bg-green-400" : "bg-yellow-400"}`} />
+            </span>
+          </span>
         </div>
-        <span className="text-sm text-white/60 font-medium">Agent</span>
-        <span className={`w-2 h-2 rounded-full ml-0.5 ${statusDot} ${isActive ? "animate-pulse" : ""}`} />
+        <span className="hidden md:inline text-sm text-white/60 font-medium">Agent</span>
       </PopoverTrigger>
 
       <PopoverContent
         align="end"
-        className="w-80 bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl p-4 flex flex-col gap-3"
+        className="w-[calc(100vw-2rem)] sm:w-80 bg-[#1a1a1a] border border-white/10 rounded-2xl shadow-2xl p-4 flex flex-col gap-3"
       >
-        {/* Header — mirrors AgentActivationCard */}
         <div className="flex flex-col items-center gap-1.5">
           <div className="relative w-14 h-14 mb-1">
             <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center">
-              <Brain size={26} className="text-white" />
+              <Brain size={34} className="text-white" />
             </div>
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded bg-white/90 border-[2.5px] border-[#1a1a1a] flex items-center justify-center">
-              <img src="/logo.svg" alt="Allign" className="w-3.5 h-3.5 invert" />
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded ring-[2px] ring-[#1a1a1a] bg-white overflow-hidden flex items-center justify-center p-[3px]">
+              <img src="/logo.svg" alt="Allign" className="w-full h-full invert" />
             </div>
           </div>
           <p className="text-white font-semibold text-sm font-manrope">Allign Agent</p>
           <div className="flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#a8ff78] animate-pulse" : isExpired ? "bg-red-400" : "bg-yellow-400"}`} />
+            <div className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-green-400 animate-pulse" : isExpired ? "bg-red-400" : "bg-yellow-400"}`} />
             <p className="text-xs text-white/40">
               {isExpired ? "Permission expired" : isActive ? "Active" : "Paused"}
             </p>
           </div>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 gap-2 mt-2">
           <div className="bg-[#252525] rounded-lg px-3 py-2.5">
             <p className="text-white/40 text-xs mb-1">Budget</p>
@@ -152,7 +149,6 @@ export default function AgentStatusBadge() {
           </button>
         )}
 
-        {/* Expired warning */}
         {isExpired && (
           <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
             <AlertCircle size={13} className="text-red-400 shrink-0" />
@@ -160,7 +156,7 @@ export default function AgentStatusBadge() {
           </div>
         )}
 
-<a href="/app/activity" className="flex items-center justify-center text-sm text-white/60 hover:text-white transition-colors group">
+        <a href="/app/activity" className="flex items-center justify-center text-sm text-white/60 hover:text-white transition-colors group">
           <span className="flex items-center gap-1.5 border-b border-white/30 group-hover:border-white transition-colors leading-none pb-[2px]">
             View full activity
             <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
