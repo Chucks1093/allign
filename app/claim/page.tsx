@@ -23,7 +23,7 @@ interface GiftRecord {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="min-h-screen relative flex items-center justify-center px-4 font-[var(--font-manrope)]"
+      className="min-h-dvh relative flex items-center justify-center px-4 font-[var(--font-manrope)]"
       style={{ background: "linear-gradient(to bottom, rgba(37,99,235,0.4) 0%, rgba(37,99,235,0.15) 35%, #0d0d0d 65%)" }}
     >
       <div className="absolute inset-0 pointer-events-none opacity-[0.3] z-0" style={{ backgroundImage: "url('/images/noise.png')" }} />

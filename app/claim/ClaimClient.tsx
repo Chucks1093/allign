@@ -436,15 +436,62 @@ export default function ClaimClient({ gift, verified, authError }: Props) {
   );
 }
 
+function GiftResultCard({ gift }: { gift: any }) {
+  const stickerId = gift.sticker_id ? Number(gift.sticker_id) : null;
+  const stickerUrl = stickerId ? GIFT_STICKERS[stickerId] : null;
+  const stock = STOCKS.find((s) => s.tokenTicker === gift.ticker);
+  const colorIndex = stickerId ? (stickerId - 1) % CARD_COLORS.length : parseInt(gift.id[0], 16) % CARD_COLORS.length;
+  const color = CARD_COLORS[colorIndex];
+
+  return (
+    <a href={`/claim?id=${gift.id}`}
+      className="flex items-center gap-4 bg-[#1a1a1a] hover:bg-[#222] border border-white/[0.06] hover:border-white/[0.12] rounded-xl px-4 py-3 transition-all cursor-pointer">
+      <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: stickerUrl ? color : "#D6F0FF" }}>
+        {stickerUrl
+          ? <img src={stickerUrl} alt="" className="w-9 h-9 object-contain" />
+          : <img src="/icons/gift.svg" alt="gift" className="w-9 h-9 object-contain" />}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-white font-semibold text-sm">{stock?.name ?? gift.ticker}</p>
+        <p className="text-white/40 text-xs truncate">from {shortAddr(gift.sender_address)}</p>
+        {gift.message && <p className="text-white/50 text-xs italic truncate">"{gift.message}"</p>}
+      </div>
+      {stock && <img src={stock.logo} alt={stock.name} className="w-8 h-8 rounded-full bg-white p-0.5 shrink-0" />}
+    </a>
+  );
+}
+
 function HandleSearch() {
   const [platform, setPlatform] = useState("twitter");
   const [handle, setHandle] = useState("");
+  const [wallet, setWallet] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [gifts, setGifts] = useState<any[] | null>(null);
+  const [searched, setSearched] = useState(false);
+
+  async function search() {
+    setLoading(true);
+    setSearched(false);
+    try {
+      const url = wallet.trim()
+        ? `/api/gifts/search?wallet=${wallet.trim().toLowerCase()}`
+        : `/api/gifts/search?platform=${platform}&handle=${handle.trim().replace(/^@/, "")}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setGifts(data.gifts ?? []);
+      setSearched(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const canSearch = !!handle.trim() || wallet.trim().startsWith("0x");
 
   return (
     <div className="max-w-lg mx-auto space-y-4">
       <div className="text-center space-y-2 mb-6">
         <p className="text-white text-4xl font-semibold font-montserrat">Claim your gift</p>
-        <p className="text-white/40 text-sm">Enter your handle to see if someone sent you stocks.</p>
+        <p className="text-white/40 text-sm">Enter your handle or wallet to find gifts.</p>
       </div>
 
       <div className="grid grid-cols-4 gap-1.5">
@@ -458,18 +505,34 @@ function HandleSearch() {
         ))}
       </div>
 
-      <FormInput
-        label="Handle"
-        value={handle}
-        onChange={setHandle}
-        placeholder="yourhandle"
-        prefix={<span className="text-white/60 text-lg font-semibold pl-4 pr-1">@</span>}
-      />
+      <FormInput label="Handle" value={handle} onChange={setHandle} placeholder="yourhandle"
+        prefix={<span className="text-white/60 text-lg font-semibold pl-4 pr-1">@</span>} />
 
-      <button disabled={!handle}
-        className="w-full py-4 rounded-xl bg-white hover:bg-white/90 text-black font-bold text-base transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed">
-        Check for gifts
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-white/10" />
+        <span className="text-white/30 text-xs font-mono">or</span>
+        <div className="flex-1 h-px bg-white/10" />
+      </div>
+
+      <FormInput label="Wallet address" value={wallet} onChange={setWallet} placeholder="0x..." />
+
+      <button onClick={search} disabled={!canSearch || loading}
+        className="w-full py-4 rounded-lg bg-white hover:bg-white/90 text-black font-bold text-base transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+        {loading ? <><Loader2 size={16} className="animate-spin" /> Searching…</> : "Check for gifts"}
       </button>
+
+      {searched && (
+        gifts && gifts.length > 0 ? (
+          <div className="space-y-2 pt-2">
+            <p className="text-white/40 text-xs uppercase tracking-widest font-mono">{gifts.length} gift{gifts.length > 1 ? "s" : ""} found</p>
+            {gifts.map((g) => <GiftResultCard key={g.id} gift={g} />)}
+          </div>
+        ) : (
+          <div className="text-center py-6">
+            <p className="text-white/40 text-sm">No unclaimed gifts found.</p>
+          </div>
+        )
+      )}
     </div>
   );
 }
