@@ -17,7 +17,7 @@ interface AgentConfig {
 }
 
 export default function AgentView() {
-  const { authenticated } = usePrivy();
+  const { authenticated, login } = usePrivy();
   const { address } = useAccount();
   const [config, setConfig] = useState<AgentConfig | null>(null);
   const [activity, setActivity] = useState<Activity[]>([]);
@@ -93,12 +93,22 @@ export default function AgentView() {
   // ── No wallet ──────────────────────────────────────────────────────────────
   if (!authenticated) {
     return (
-      <div className="py-24 flex flex-col items-center gap-3 text-center">
-        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-1">
-          <Wallet size={22} className="text-white/20" />
+      <div className="space-y-6">
+        <div className="bg-[#181818] border border-white/[0.06] rounded-xl overflow-hidden">
+          <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_auto] px-5 py-3 border-b border-white/[0.06] gap-4 md:gap-6">
+            <span className="text-white/30 text-xs font-medium">Action</span>
+            <span className="text-white/30 text-xs font-medium text-right">Amount</span>
+            <span className="hidden md:block text-white/30 text-xs font-medium text-right w-28">Date</span>
+          </div>
+          <div className="flex flex-col items-center justify-center gap-4 py-16">
+            <Wallet size={36} className="text-white/20" />
+            <p className="text-white/40 text-sm">Connect your wallet to view agent activity</p>
+            <button onClick={login}
+              className="flex items-center gap-2 px-6 py-1.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-white/90 transition-colors cursor-pointer">
+              <Wallet size={15} /> Connect wallet
+            </button>
+          </div>
         </div>
-        <p className="text-white/50 text-sm font-medium">Connect your wallet</p>
-        <p className="text-white/25 text-xs">to view agent activity</p>
       </div>
     );
   }
@@ -145,28 +155,26 @@ export default function AgentView() {
       </div>
 
       {/* Table */}
-      {activity.length === 0 ? (
-        <div className="py-16 flex flex-col items-center gap-3 text-center border border-white/[0.06] rounded-xl bg-[#181818]">
-          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
-            <Bot size={20} className="text-white/20" />
-          </div>
-          <p className="text-white/40 text-sm">No activity yet</p>
-          <p className="text-white/20 text-xs">Agent trades will appear here</p>
+      <div className="bg-[#181818] border border-white/[0.06] rounded-xl overflow-hidden">
+        <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_auto] px-5 py-3 border-b border-white/[0.06] gap-4 md:gap-6">
+          <span className="text-white/30 text-xs font-medium">Action</span>
+          <span className="text-white/30 text-xs font-medium text-right">Amount</span>
+          <span className="hidden md:block text-white/30 text-xs font-medium text-right w-28">Date</span>
         </div>
-      ) : (
-        <div className="bg-[#181818] border border-white/[0.06] rounded-xl overflow-hidden">
-          <div className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_auto_auto] px-5 py-3 border-b border-white/[0.06] gap-4 md:gap-6">
-            <span className="text-white/30 text-xs font-medium">Action</span>
-            <span className="text-white/30 text-xs font-medium text-right">Amount</span>
-            <span className="hidden md:block text-white/30 text-xs font-medium text-right w-28">Date</span>
+        {activity.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <Bot size={36} className="text-white/20" />
+            <p className="text-white/40 text-sm">No activity yet</p>
+            <p className="text-white/20 text-xs">All your app transactions will appear here</p>
           </div>
+        ) : (
           <div className="divide-y divide-white/[0.05]">
             {activity.map((entry) => (
               <ActivityRow key={entry.id} entry={entry} />
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {hasMore && (
         <button

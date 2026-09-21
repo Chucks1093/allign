@@ -12,6 +12,7 @@ import BuyModal from "@/components/trade/BuyModal";
 import { STOCKS } from "@/lib/stocks/tokens";
 import type { Stock } from "@/lib/stocks/tokens";
 import { recordActivity } from "@/lib/agent/activity";
+import toast from "react-hot-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -217,6 +218,10 @@ export default function ChatArea() {
   function handleSend() {
     const text = input.trim();
     if (!text || isLoading) return;
+    if (!address) {
+      toast.error("Connect your wallet to use the Agent");
+      return;
+    }
     sendMessage({ text });
     setInput("");
   }

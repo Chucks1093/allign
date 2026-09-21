@@ -21,7 +21,7 @@ interface Holding {
 }
 
 export default function GiftView() {
-  const { authenticated } = usePrivy();
+  const { authenticated, login } = usePrivy();
   const { address } = useAccount();
 
   const [tab, setTab] = useState<"handle" | "link" | "gift">("gift");
@@ -57,12 +57,22 @@ export default function GiftView() {
   // ── No wallet ────────────────────────────────────────────────────────────────
   if (!authenticated) {
     return (
-      <div className="py-24 flex flex-col items-center gap-3 text-center px-6">
-        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-1">
-          <Wallet size={22} className="text-white/20" />
+      <div className="px-4 md:px-8 py-6 md:py-8 space-y-6 max-w-xl mx-auto">
+        {/* Tab shell */}
+        <div className="flex w-fit bg-[#111] rounded-xl p-1 mx-auto gap-1">
+          {["Sticker", "Handle", "Link"].map((label) => (
+            <div key={label} className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white/20">{label}</div>
+          ))}
         </div>
-        <p className="text-white/50 text-sm font-medium">Connect your wallet</p>
-        <p className="text-white/25 text-xs">to send gifts</p>
+        {/* Connect state */}
+        <div className="rounded-xl border border-white/[0.06] bg-[#181818] flex flex-col items-center justify-center gap-4 py-16">
+          <Wallet size={36} className="text-white/20" />
+          <p className="text-white/40 text-sm">Connect your wallet to send gifts</p>
+          <button onClick={login}
+            className="flex items-center gap-2 px-6 py-1.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-white/90 transition-colors cursor-pointer">
+            <Wallet size={15} /> Connect wallet
+          </button>
+        </div>
       </div>
     );
   }

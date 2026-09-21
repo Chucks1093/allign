@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useSendCalls, useCallsStatus } from "wagmi";
 import { publicClient } from "@/lib/stocks/client";
 import { Loader2, CheckCircle2, AlertCircle, Lock } from "lucide-react";
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export default function StrategyTradeCard({ strategy }: Props) {
+  const { authenticated } = usePrivy();
   const { address } = useAccount();
   const { sendCallsAsync } = useSendCalls();
   const [callsId, setCallsId] = useState<string | undefined>(undefined);
@@ -91,8 +93,8 @@ export default function StrategyTradeCard({ strategy }: Props) {
 
   const parsedInput = parseFloat(input) || 0;
   const belowMinimum = parsedInput > 0 && parsedInput < MIN_BUY;
-  const insufficientBalance = parsedInput > usdcBalance;
-  const canTrade = !!address && quotes.length > 0 && !quoting && !belowMinimum && !insufficientBalance && status === "idle";
+  const insufficientBalance = authenticated && parsedInput > usdcBalance;
+  const canTrade = authenticated && !!address && quotes.length > 0 && !quoting && !belowMinimum && !insufficientBalance && status === "idle";
 
   const buttonLabel = () => {
     if (status === "signing") return <span className="flex items-center justify-center gap-2"><Loader2 size={14} className="animate-spin" /> Signing…</span>;

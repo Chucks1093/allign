@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useSendCalls, useCallsStatus } from "wagmi";
 import { createPublicClient, http } from "viem";
 import { base } from "viem/chains";
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function TradeCard({ stock, price }: Props) {
+  const { authenticated } = usePrivy();
   const { address } = useAccount();
   const { sendCallsAsync } = useSendCalls();
   const [callsId, setCallsId] = useState<string | undefined>(undefined);
@@ -133,8 +135,8 @@ export default function TradeCard({ stock, price }: Props) {
   const advisory = quote?.advisory;
   const vsFeedBad = advisory && Math.abs(advisory.vsFeedPct) > 2;
   const belowMinimum = parsedInput > 0 && parsedInput < (isBuy ? MIN_BUY : MIN_SELL);
-  const insufficientBalance = isBuy ? parsedInput > usdcBalance : parsedInput > tokenBalance;
-  const canTrade = !!address && !!quote && !quoting && !belowMinimum && !insufficientBalance && !vsFeedBad && status === "idle";
+  const insufficientBalance = authenticated && (isBuy ? parsedInput > usdcBalance : parsedInput > tokenBalance);
+  const canTrade = authenticated && !!address && !!quote && !quoting && !belowMinimum && !insufficientBalance && !vsFeedBad && status === "idle";
 
   const receiveDisplay = () => {
     if (quoting) return <span className="flex items-center gap-1"><Loader2 size={10} className="animate-spin" /> Fetching…</span>;

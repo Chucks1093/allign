@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAccount } from "wagmi";
 import { usePrivy } from "@privy-io/react-auth";
-import { RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search, Wallet, Globe, PieChart } from "lucide-react";
 import Link from "next/link";
 import {
    AreaChart,
@@ -107,8 +107,19 @@ async function fetchCombinedChart(
    });
 }
 
+const TABLE_HEADER = (
+   <div className="grid grid-cols-[2fr_1fr_1fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-white/[0.06]">
+      <span className="text-white/30 text-xs font-medium">Token</span>
+      <span className="text-white/30 text-xs font-medium text-right hidden md:block">Weight</span>
+      <span className="text-white/30 text-xs font-medium text-right hidden md:block">Shares</span>
+      <span className="text-white/30 text-xs font-medium text-right">Value</span>
+      <span className="text-white/30 text-xs font-medium text-right hidden md:block">Price</span>
+      <span className="text-white/30 text-xs font-medium text-right">24H</span>
+   </div>
+);
+
 export default function PortfolioView() {
-   const { authenticated } = usePrivy();
+   const { authenticated, login } = usePrivy();
    const { address } = useAccount();
    const [data, setData] = useState<PortfolioData | null>(null);
    const [loading, setLoading] = useState(true);
@@ -161,8 +172,18 @@ export default function PortfolioView() {
 
    if (!authenticated) {
       return (
-         <div className="h-full flex items-center justify-center">
-            <p className="text-white/40 text-sm">Connect your wallet to view your portfolio</p>
+         <div className="px-4 md:px-8 py-6 md:py-8 max-w-6xl mx-auto">
+            <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#181818]">
+               {TABLE_HEADER}
+               <div className="flex flex-col items-center justify-center gap-4 py-16">
+                  <Wallet size={36} className="text-white/20" />
+                  <p className="text-white/40 text-sm">Connect your wallet to view your portfolio</p>
+                  <button onClick={login}
+                     className="flex items-center gap-2 px-6 py-1.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-white/90 transition-colors cursor-pointer">
+                     <Wallet size={15} /> Connect wallet
+                  </button>
+               </div>
+            </div>
          </div>
       );
    }
@@ -224,16 +245,18 @@ export default function PortfolioView() {
 
    if (!data || data.holdings.length === 0) {
       return (
-         <div className="h-full flex flex-col items-center justify-center gap-3">
-            <p className="text-white/40 text-sm">
-               No tokenized stocks in your wallet yet
-            </p>
-            <Link
-               href="/app/explore"
-               className="text-sm text-white/60 hover:text-white transition-colors"
-            >
-               Browse stocks →
-            </Link>
+         <div className="px-4 md:px-8 py-6 md:py-8 max-w-6xl mx-auto">
+            <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#181818]">
+               {TABLE_HEADER}
+               <div className="flex flex-col items-center justify-center gap-4 py-16">
+                  <PieChart size={36} className="text-white/20" />
+                  <p className="text-white/40 text-sm">You don't have any stocks</p>
+                  <Link href="/app/explore"
+                     className="flex items-center gap-2 px-6 py-1.5 rounded-lg bg-white text-black text-sm font-bold hover:bg-white/90 transition-colors">
+                     <Globe size={15} /> Get stocks
+                  </Link>
+               </div>
+            </div>
          </div>
       );
    }
@@ -398,15 +421,7 @@ export default function PortfolioView() {
                </div>
 
                <div className="rounded-xl overflow-hidden border border-white/[0.06] bg-[#181818]">
-                  {/* Header */}
-                  <div className="grid grid-cols-[2fr_1fr_1fr] md:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr] px-5 py-3 border-b border-white/[0.06]">
-                     <span className="text-white/30 text-xs font-medium">Token</span>
-                     <span className="text-white/30 text-xs font-medium text-right hidden md:block">Weight</span>
-                     <span className="text-white/30 text-xs font-medium text-right hidden md:block">Shares</span>
-                     <span className="text-white/30 text-xs font-medium text-right">Value</span>
-                     <span className="text-white/30 text-xs font-medium text-right hidden md:block">Price</span>
-                     <span className="text-white/30 text-xs font-medium text-right">24H</span>
-                  </div>
+                  {TABLE_HEADER}
 
                   {/* Rows */}
                   {data.holdings

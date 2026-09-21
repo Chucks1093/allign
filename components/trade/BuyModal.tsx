@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import { useAccount, useSendCalls, useCallsStatus } from "wagmi";
 import { publicClient } from "@/lib/stocks/client";
 import { X, Loader2, CheckCircle2, AlertCircle, Info } from "lucide-react";
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export default function BuyModal({ stock, price, onClose, initialTab = "Buy", initialAmount }: Props) {
+  const { authenticated } = usePrivy();
   const { address } = useAccount();
   const { sendCallsAsync } = useSendCalls();
   const [callsId, setCallsId] = useState<string | undefined>(undefined);
@@ -155,10 +157,10 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
   const vsFeedBad = advisory && Math.abs(advisory.vsFeedPct) > 2;
 
   const belowMinimum = parsedInput > 0 && parsedInput < (isBuy ? MIN_BUY : MIN_SELL);
-  const insufficientBalance = isBuy ? parsedInput > usdcBalance : parsedInput > tokenBalance;
+  const insufficientBalance = authenticated && (isBuy ? parsedInput > usdcBalance : parsedInput > tokenBalance);
 
   const canTrade =
-    !!address && !!quote && !quoting && !belowMinimum &&
+    authenticated && !!address && !!quote && !quoting && !belowMinimum &&
     !insufficientBalance && !vsFeedBad && status === "idle";
 
   const receiveDisplay = () => {
@@ -187,7 +189,7 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-3xl p-5 shadow-2xl"
+        className="relative w-full max-w-sm bg-[#1a1a1a] border border-white/10 rounded-3xl p-5 shadow-2xl font-manrope"
         onClick={(e) => e.stopPropagation()}
       >
         <button onClick={onClose} className="absolute top-4 right-4 text-white/30 hover:text-white transition-colors cursor-pointer">
@@ -233,7 +235,7 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
             </button>
           </div>
           <div className="flex items-center gap-2">
-            {isBuy && <span className="text-white/30 text-2xl font-light">$</span>}
+            {isBuy && <span className="text-white/30 text-3xl font-semibold">$</span>}
             <input
               type="number"
               value={input}
@@ -322,7 +324,7 @@ export default function BuyModal({ stock, price, onClose, initialTab = "Buy", in
               ? "bg-yellow-500/20 text-yellow-400 cursor-not-allowed"
               : canTrade
               ? isBuy
-                ? "bg-[#a8ff78] hover:bg-[#96f060] text-black"
+                ? "bg-white/90 hover:bg-white text-black"
                 : "bg-red-500 hover:bg-red-400 text-white"
               : "bg-white/10 text-white/30 cursor-not-allowed"
           }`}
