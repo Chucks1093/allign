@@ -514,7 +514,7 @@ function HandleSearch() {
         <div className="flex-1 h-px bg-white/10" />
       </div>
 
-      <FormInput label="Wallet address" value={wallet} onChange={setWallet} placeholder="0x..." />
+      <FormInput label="Wallet address" value={wallet} onChange={setWallet} placeholder="0x..." prefix={<Wallet size={18} className="text-white/70 ml-4 shrink-0" />} />
 
       <button onClick={search} disabled={!canSearch || loading}
         className="w-full py-4 rounded-lg bg-white hover:bg-white/90 text-black font-bold text-base transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2">
