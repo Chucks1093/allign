@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAccount } from "wagmi";
-import { Gift, Link2, Loader2 } from "lucide-react";
+import { usePrivy } from "@privy-io/react-auth";
+import { Gift, Link2, Wallet } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import HandleTab from "./HandleTab";
 import LinkTab from "./LinkTab";
@@ -20,6 +21,7 @@ interface Holding {
 }
 
 export default function GiftView() {
+  const { authenticated } = usePrivy();
   const { address } = useAccount();
 
   const [tab, setTab] = useState<"handle" | "link" | "gift">("gift");
@@ -29,7 +31,7 @@ export default function GiftView() {
   const [stockContracts, setStockContracts] = useState<Record<string, string>>({});
 
   const fetchHoldings = useCallback(async () => {
-    if (!address) { setLoadingHoldings(false); return; }
+    if (!address) { if (!authenticated) setLoadingHoldings(false); return; }
     try {
       const res = await fetch(`/api/portfolio?address=${address}`);
       const json = await res.json();
@@ -40,7 +42,7 @@ export default function GiftView() {
     } finally {
       setLoadingHoldings(false);
     }
-  }, [address]);
+  }, [address, authenticated]);
 
   useEffect(() => { fetchHoldings(); }, [fetchHoldings]);
 
@@ -52,26 +54,42 @@ export default function GiftView() {
     });
   }, []);
 
-  if (!address) {
+  // ── No wallet ────────────────────────────────────────────────────────────────
+  if (!authenticated) {
     return (
-      <div className="px-6 py-20 flex flex-col items-center gap-3 text-center">
-        <Gift size={40} className="text-white/20" />
-        <p className="text-white/40 text-sm">Connect your wallet to send gifts</p>
+      <div className="py-24 flex flex-col items-center gap-3 text-center px-6">
+        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-1">
+          <Wallet size={22} className="text-white/20" />
+        </div>
+        <p className="text-white/50 text-sm font-medium">Connect your wallet</p>
+        <p className="text-white/25 text-xs">to send gifts</p>
       </div>
     );
   }
 
+  // ── Loading skeleton ──────────────────────────────────────────────────────────
   if (loadingHoldings) {
     return (
-      <div className="px-6 py-20 flex items-center justify-center">
-        <Loader2 size={24} className="text-white/30 animate-spin" />
+      <div className="px-4 md:px-8 py-6 md:py-8 space-y-6 max-w-xl mx-auto">
+        {/* Tab skeleton */}
+        <div className="flex w-fit bg-[#111] rounded-xl p-1 mx-auto gap-1">
+          {[80, 64, 72].map((w, i) => (
+            <div key={i} className={`h-10 rounded-lg bg-white/5 animate-pulse`} style={{ width: w }} />
+          ))}
+        </div>
+        {/* Sticker grid skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="rounded-2xl aspect-square bg-white/5 animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <ScrollArea className="h-full">
-      <div className="px-8 py-8 space-y-6">
+      <div className="px-4 md:px-8 py-6 md:py-8 space-y-6">
 
         {/* Tab switcher */}
         <div className="flex w-fit bg-[#111] rounded-xl p-1 mx-auto">
@@ -83,7 +101,7 @@ export default function GiftView() {
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`flex items-center gap-2.5 px-8 py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-5 py-2.5 md:px-8 md:py-3 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
                 tab === key ? "bg-[#2a2a2a] text-white" : "text-white/30 hover:text-white/50"
               }`}
             >
@@ -95,7 +113,7 @@ export default function GiftView() {
 
         {tab === "handle" && (
           <HandleTab
-            address={address}
+            address={address!}
             holdings={holdings}
             selected={selected}
             setSelected={setSelected}
@@ -105,7 +123,7 @@ export default function GiftView() {
 
         {tab === "link" && (
           <LinkTab
-            address={address}
+            address={address!}
             holdings={holdings}
             selected={selected}
             setSelected={setSelected}
@@ -115,7 +133,7 @@ export default function GiftView() {
 
         {tab === "gift" && (
           <GiftTab
-            address={address}
+            address={address!}
             holdings={holdings}
             selected={selected}
             setSelected={setSelected}

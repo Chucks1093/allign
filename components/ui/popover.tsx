@@ -23,7 +23,7 @@ function PopoverContent({
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Positioner
-        className="isolate z-50 outline-none"
+        className="isolate z-[200] outline-none"
         align={align}
         side={side}
         sideOffset={sideOffset}
@@ -41,4 +41,8 @@ function PopoverContent({
   )
 }
 
-export { Popover, PopoverTrigger, PopoverContent }
+function PopoverClose({ ...props }: PopoverPrimitive.Close.Props) {
+  return <PopoverPrimitive.Close data-slot="popover-close" {...props} />
+}
+
+export { Popover, PopoverTrigger, PopoverContent, PopoverClose }

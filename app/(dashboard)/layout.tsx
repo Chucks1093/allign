@@ -33,7 +33,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   className="absolute inset-0 pointer-events-none opacity-[0.3] z-0"
                   style={{ backgroundImage: "url('/images/noise.png')" }}
                />
-               <div className="relative z-10 flex flex-col flex-1 overflow-hidden">
+               <div className="relative flex flex-col flex-1 overflow-hidden">
                   <ChatHeader onMenuClick={() => setSidebarOpen(true)} />
                   <div className="flex-1 min-h-0 overflow-hidden">
                      {children}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { motion, useAnimation } from "framer-motion";
 import { X, Loader2, Copy, Check, Zap, CalendarDays } from "lucide-react";
 import { useWalletClient } from "wagmi";
 import { depositGift } from "@/lib/gifts/deposit";
@@ -81,6 +82,50 @@ export default function GiftTab({
    const { data: walletClient } = useWalletClient({ chainId: 8453 });
 
    const [activeId, setActiveId] = useState<number | null>(null);
+   const stickerAnim = useAnimation();
+
+   useEffect(() => {
+      if (activeId === null) return;
+      let cancelled = false;
+      let timeout: ReturnType<typeof setTimeout>;
+      let interval: ReturnType<typeof setInterval>;
+
+      function startFloat() {
+         if (cancelled) return;
+         stickerAnim.start(
+            { y: [0, -7, 0] },
+            { repeat: Infinity, duration: 3, ease: "easeInOut" },
+         );
+      }
+
+      async function wiggle() {
+         if (cancelled) return;
+         await stickerAnim.start(
+            { scale: [1, 1.18, 1.14, 1.14, 1], rotate: [6, 0, 0, 0, 6], y: 0 },
+            { duration: 2.2, ease: "easeInOut", times: [0, 0.09, 0.18, 0.91, 1] },
+         );
+         startFloat();
+      }
+
+      async function run() {
+         stickerAnim.stop();
+         stickerAnim.set({ scale: 0, rotate: 0, opacity: 0, y: 0 });
+         await stickerAnim.start(
+            { scale: [0, 1.2, 1], rotate: [0, 12, 6], opacity: 1 },
+            { duration: 0.4, ease: "easeOut", times: [0, 0.55, 1] },
+         );
+         if (cancelled) return;
+         startFloat();
+         timeout = setTimeout(() => {
+            if (cancelled) return;
+            wiggle();
+            interval = setInterval(() => { wiggle(); }, 10200);
+         }, 8000);
+      }
+
+      run();
+      return () => { cancelled = true; clearTimeout(timeout); clearInterval(interval); };
+   }, [activeId]);
    const [activeColor, setActiveColor] = useState("");
 
    const [message, setMessage] = useState("");
@@ -96,7 +141,7 @@ export default function GiftTab({
 
    const parsedAmount = parseFloat(amount) || 0;
    const amountValid =
-      parsedAmount > 0 && parsedAmount <= (selected?.shares ?? 0);
+      parsedAmount > 0 && parsedAmount <= (selected?.shares ?? 0) + 1e-6;
    const canSend =
       !!activeId &&
       !!selected &&
@@ -214,7 +259,7 @@ export default function GiftTab({
                         alt=""
                         width={100}
                         height={100}
-                        className="w-20 h-20 object-contain"
+                        className="w-24 h-24 object-contain"
                      />
                   </button>
                );
@@ -224,7 +269,7 @@ export default function GiftTab({
          {/* Modal */}
          {activeId !== null && (
             <div
-               className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-0 sm:px-4"
+               className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center px-0 sm:px-4"
                onClick={(e) => {
                   if (e.target === e.currentTarget) closeModal();
                }}
@@ -234,15 +279,15 @@ export default function GiftTab({
                   onClick={closeModal}
                />
 
-               <div className="relative w-full sm:max-w-md bg-[#111] sm:rounded-2xl rounded-t-2xl shadow-2xl z-10 max-h-[92dvh] overflow-y-auto">
+               <div className="relative w-full sm:max-w-sm bg-[#111] border border-white/[0.08] sm:rounded-2xl rounded-t-2xl shadow-2xl z-10 max-h-[92dvh] overflow-y-auto font-manrope">
                   {/* Header */}
-                  <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                     <p className="text-white font-bold text-lg">Send a gift</p>
+                  <div className="flex items-center justify-between px-5 py-4">
+                     <p className="text-white font-semibold text-base">Send a gift</p>
                      <button
                         onClick={closeModal}
-                        className="text-white/40 hover:text-white transition-colors cursor-pointer"
+                        className="rounded-full w-8 h-8 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors cursor-pointer outline-none"
                      >
-                        <X size={20} />
+                        <X size={15} />
                      </button>
                   </div>
 
@@ -251,15 +296,11 @@ export default function GiftTab({
                         /* Success state */
                         <div className="space-y-4 py-2">
                            <div className="flex flex-col items-center gap-4 py-4">
-                              <div
-                                 className="w-20 h-20 rounded-2xl flex items-center justify-center bg-[#161616] border border-white/[0.06]"
-                              >
-                                 <img
-                                    src={GIFT_STICKERS[activeId]}
-                                    alt=""
-                                    className="w-14 h-14 object-contain"
-                                 />
-                              </div>
+                              <img
+                                 src={GIFT_STICKERS[activeId]}
+                                 alt=""
+                                 className="w-20 h-20 object-contain"
+                              />
                               <div className="text-center">
                                  <p className="text-white font-bold text-xl">
                                     Gift created!
@@ -297,16 +338,13 @@ export default function GiftTab({
                      ) : (
                         <>
                            {/* Sticker preview */}
-                           <div className="flex justify-center pt-1">
-                              <div
-                                 className="w-24 h-24 rounded-2xl flex items-center justify-center bg-[#161616] border border-white/[0.06]"
-                              >
-                                 <img
-                                    src={GIFT_STICKERS[activeId]}
-                                    alt=""
-                                    className="w-16 h-16 object-contain"
-                                 />
-                              </div>
+                           <div className="flex justify-center py-2">
+                              <motion.img
+                                 src={GIFT_STICKERS[activeId]}
+                                 alt=""
+                                 className="w-36 h-36 object-contain drop-shadow-xl"
+                                 animate={stickerAnim}
+                              />
                            </div>
 
                            {/* Message */}
@@ -333,67 +371,31 @@ export default function GiftTab({
 
                            {/* Schedule */}
                            <div className="space-y-2">
-                              <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">
+                              <p className="text-[11px] font-mono uppercase tracking-widest text-white/70">
                                  When to unlock
                               </p>
                               <div className="flex gap-2">
                                  <button
                                     onClick={() => setScheduleEnabled(false)}
-                                    className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all cursor-pointer text-left ${
+                                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all cursor-pointer ${
                                        !scheduleEnabled
                                           ? "border-white/40 bg-white/5"
                                           : "border-white/10 bg-transparent hover:border-white/20"
                                     }`}
                                  >
-                                    <Zap
-                                       size={18}
-                                       className={
-                                          !scheduleEnabled
-                                             ? "text-white shrink-0"
-                                             : "text-white/30 shrink-0"
-                                       }
-                                    />
-                                    <div>
-                                       <p
-                                          className={`text-sm font-semibold ${!scheduleEnabled ? "text-white" : "text-white/40"}`}
-                                       >
-                                          Now
-                                       </p>
-                                       <p
-                                          className={`text-xs mt-0.5 ${!scheduleEnabled ? "text-white/50" : "text-white/20"}`}
-                                       >
-                                          Release immediately
-                                       </p>
-                                    </div>
+                                    <Zap size={18} className={!scheduleEnabled ? "text-white shrink-0" : "text-white/30 shrink-0"} />
+                                    <span className={`text-sm font-semibold ${!scheduleEnabled ? "text-white" : "text-white/40"}`}>Now</span>
                                  </button>
                                  <button
                                     onClick={() => setScheduleEnabled(true)}
-                                    className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all cursor-pointer text-left ${
+                                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border-2 transition-all cursor-pointer ${
                                        scheduleEnabled
                                           ? "border-white/40 bg-white/5"
                                           : "border-white/10 bg-transparent hover:border-white/20"
                                     }`}
                                  >
-                                    <CalendarDays
-                                       size={18}
-                                       className={
-                                          scheduleEnabled
-                                             ? "text-white shrink-0"
-                                             : "text-white/30 shrink-0"
-                                       }
-                                    />
-                                    <div>
-                                       <p
-                                          className={`text-sm font-semibold ${scheduleEnabled ? "text-white" : "text-white/40"}`}
-                                       >
-                                          Schedule
-                                       </p>
-                                       <p
-                                          className={`text-xs mt-0.5 ${scheduleEnabled ? "text-white/50" : "text-white/20"}`}
-                                       >
-                                          Choose date & time
-                                       </p>
-                                    </div>
+                                    <CalendarDays size={18} className={scheduleEnabled ? "text-white shrink-0" : "text-white/30 shrink-0"} />
+                                    <span className={`text-sm font-semibold ${scheduleEnabled ? "text-white" : "text-white/40"}`}>Schedule</span>
                                  </button>
                               </div>
                               {scheduleEnabled && (

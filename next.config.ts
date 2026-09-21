@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   allowedDevOrigins: ["*.ngrok-free.app", "192.168.0.162"],
   serverExternalPackages: ["@base-org/account", "@coinbase/cdp-sdk"],
   images: {

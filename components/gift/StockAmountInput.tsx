@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ArrowUpDown, ChevronDown, Search, Check } from "lucide-react";
 import { STOCKS } from "@/lib/stocks/tokens";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger, PopoverClose } from "@/components/ui/popover";
 
 interface Holding {
   ticker: string;
@@ -37,26 +37,31 @@ export default function StockAmountInput({ holdings, selected, onSelect, tokenAm
     ? price > 0 ? (parsed / price).toFixed(6) : "0"
     : (parsed * price).toFixed(2);
 
+  function floorTo6(n: number) {
+    return Math.floor(n * 1e6) / 1e6;
+  }
+
   function handleInput(val: string) {
     setRawInput(val);
     const n = parseFloat(val) || 0;
-    onTokenAmountChange(isDollar ? (price > 0 ? (n / price).toFixed(6) : "0") : val);
+    onTokenAmountChange(isDollar ? (price > 0 ? String(floorTo6(n / price)) : "0") : val);
   }
 
   function toggle() {
     const n = parseFloat(rawInput) || 0;
     const converted = isDollar
-      ? (price > 0 ? (n / price).toFixed(6) : "0")
+      ? (price > 0 ? String(floorTo6(n / price)) : "0")
       : (n * price).toFixed(2);
     setRawInput(converted);
-    onTokenAmountChange(isDollar ? converted : (price > 0 ? (parseFloat(converted) / price).toFixed(6) : "0"));
+    onTokenAmountChange(isDollar ? converted : (price > 0 ? String(floorTo6(parseFloat(converted) / price)) : "0"));
     setIsDollar(v => !v);
   }
 
   function useMax() {
-    const val = isDollar ? maxDollars.toFixed(2) : maxShares.toFixed(6);
+    const floored = floorTo6(maxShares);
+    const val = isDollar ? (floored * price).toFixed(2) : String(floored);
     setRawInput(val);
-    onTokenAmountChange(maxShares.toFixed(6));
+    onTokenAmountChange(String(floored));
   }
 
   const selectedStock = selected ? STOCKS.find(s => s.tokenTicker === selected.tokenTicker) : null;
@@ -71,7 +76,7 @@ export default function StockAmountInput({ holdings, selected, onSelect, tokenAm
   });
 
   return (
-    <div className="bg-[#0c0c0c] border border-[#2a2a2a] rounded-sm p-4 space-y-3 focus-within:border-white/20 transition-colors">
+    <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-sm p-4 space-y-3 focus-within:border-white/20 transition-colors">
       <p className="text-[11px] font-mono uppercase tracking-widest text-white/40">Amount</p>
 
       {/* Amount + selector on same row */}
@@ -119,7 +124,7 @@ export default function StockAmountInput({ holdings, selected, onSelect, tokenAm
                 const stock = STOCKS.find(s => s.tokenTicker === h.tokenTicker);
                 const isSelected = selected?.tokenTicker === h.tokenTicker;
                 return (
-                  <button
+                  <PopoverClose
                     key={h.ticker}
                     onClick={() => { onSelect(h); setSearch(""); }}
                     className={`w-full px-3 py-3 flex items-center gap-3 hover:bg-white/5 transition-colors cursor-pointer text-left ${idx < filtered.length - 1 ? "border-b border-[#1a1a1a]" : ""} ${isSelected ? "bg-white/5" : ""}`}
@@ -133,7 +138,7 @@ export default function StockAmountInput({ holdings, selected, onSelect, tokenAm
                       <p className="text-white text-sm">{h.shares.toFixed(4)} {h.tokenTicker}</p>
                       <p className="text-white/40 text-xs">${(h.shares * h.price).toFixed(2)}</p>
                     </div>
-                  </button>
+                  </PopoverClose>
                 );
               })}
             </div>

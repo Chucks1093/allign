@@ -191,7 +191,7 @@ export default function HandleTab({
 
    return (
       <div className="max-w-lg mx-auto space-y-4 font-[var(--font-manrope)]">
-         <p className="text-white font-semibold text-xl">Where do they post?</p>
+         <p className="text-[11px] font-mono uppercase tracking-widest text-white/70">Social platform</p>
 
          {/* Platform grid */}
          <div className="grid grid-cols-4 gap-1.5">

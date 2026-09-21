@@ -106,7 +106,7 @@ export default function ChatArea() {
   const [input, setInput] = useState("");
   const [tradeModal, setTradeModal] = useState<TradeModalState | null>(null);
   const [isAgentActing, setIsAgentActing] = useState(false);
-  const [chatLoading, setChatLoading] = useState(false); // temp: show empty state
+  const [chatLoading, setChatLoading] = useState(true);
   const [pendingTrade, setPendingTrade] = useState<{
     callsId: string;
     userText: string;
@@ -171,16 +171,16 @@ export default function ChatArea() {
   const hasMessages = messages.length > 0;
 
   // Load saved chat when wallet connects
-  // useEffect(() => {
-  //   if (!authenticated) { setChatLoading(false); return; }
-  //   if (!address) return;
-  //   setChatLoading(true);
-  //   fetch(`/api/chats?wallet=${address.toLowerCase()}`)
-  //     .then((r) => r.json())
-  //     .then((data) => { if (Array.isArray(data.messages) && data.messages.length > 0) setMessages(data.messages); })
-  //     .catch(() => {})
-  //     .finally(() => setChatLoading(false));
-  // }, [address, authenticated]);
+  useEffect(() => {
+    if (!authenticated) { setChatLoading(false); return; }
+    if (!address) return;
+    setChatLoading(true);
+    fetch(`/api/chats?wallet=${address.toLowerCase()}`)
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data.messages) && data.messages.length > 0) setMessages(data.messages); })
+      .catch(() => {})
+      .finally(() => setChatLoading(false));
+  }, [address, authenticated]);
 
   // Auto-save when AI finishes responding
   const prevStatus = useRef(status);
